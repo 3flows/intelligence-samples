@@ -1,0 +1,365 @@
+{
+  "about": "Real-looking tickets and what the Velo support team decided. Expected values follow the team's practice, not the option descriptions.",
+  "cases": [
+    {
+      "id": "t01",
+      "input": {
+        "subject": "Charged twice",
+        "body": "I ordered a helmet last week (A-2001) and my card was charged twice. Please fix this."
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "orderNumber": "A-2001"
+      }
+    },
+    {
+      "id": "t02",
+      "input": {
+        "subject": "Invoice missing",
+        "body": "I need an invoice for order A-2002 for my employer. Can you send it?"
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "orderNumber": "A-2002"
+      }
+    },
+    {
+      "id": "t03",
+      "input": {
+        "subject": "Where is my bike?",
+        "body": "Order A-2003 was supposed to arrive last week. The tracking link hasn't changed in 6 days."
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "orderNumber": "A-2003"
+      }
+    },
+    {
+      "id": "t04",
+      "input": {
+        "subject": "Race on Saturday",
+        "body": "My race is on Saturday and the wheelset from order A-2004 still hasn't arrived. Please help!"
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": true,
+        "orderNumber": "A-2004"
+      }
+    },
+    {
+      "id": "t05",
+      "input": {
+        "subject": "Cancel my order",
+        "body": "Please cancel order A-2005, I ordered the wrong size. It hasn't shipped yet."
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "orderNumber": "A-2005"
+      }
+    },
+    {
+      "id": "t06",
+      "input": {
+        "subject": "Return unused jacket",
+        "body": "The rain jacket doesn't fit. It's unused, still with tags. How do I return it and get my money back?"
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t07",
+      "input": {
+        "subject": "Refund not received",
+        "body": "I sent back the pedals three weeks ago and still have no refund."
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t08",
+      "input": {
+        "subject": "Brakes squeak",
+        "body": "My new Velo City 3 squeaks loudly when I brake. Is that normal?"
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t09",
+      "input": {
+        "subject": "Brakes don't work",
+        "body": "The rear brake on my e-bike stopped working completely on the way to work. I can't ride it."
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": true,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t10",
+      "input": {
+        "subject": "Wrong brake pads",
+        "body": "The brake pads from order A-2010 don't fit my Velo City 3. Which ones do I need?"
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": false,
+        "orderNumber": "A-2010"
+      }
+    },
+    {
+      "id": "t11",
+      "input": {
+        "subject": "Frame cracked",
+        "body": "There's a crack in the frame near the bottom bracket. The bike is 2 years old. Is that covered by warranty?"
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": true,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t12",
+      "input": {
+        "subject": "Warranty claim: motor",
+        "body": "The motor of my e-bike makes a grinding noise since yesterday. The bike is 14 months old. I'd like a refund or a replacement."
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t13",
+      "input": {
+        "subject": "Defective light, return",
+        "body": "The front light I got with order A-2013 flickers and then goes off. I want to return it."
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": false,
+        "orderNumber": "A-2013"
+      }
+    },
+    {
+      "id": "t14",
+      "input": {
+        "subject": "Error 503",
+        "body": "My e-bike display shows error 503 and the motor won't assist. I commute every day."
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": true,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t15",
+      "input": {
+        "subject": "Assembly help",
+        "body": "The bike arrived 90% assembled. How do I attach the handlebar correctly?"
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t16",
+      "input": {
+        "subject": "Battery range in winter",
+        "body": "My battery range drops a lot now that it's cold. Is the battery broken?"
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t17",
+      "input": {
+        "subject": "Which frame size?",
+        "body": "I'm 1.82 m tall with an inside leg of 86 cm. Which frame size of the Velo City 3 should I order?"
+      },
+      "expected": {
+        "department": "sales",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t18",
+      "input": {
+        "subject": "Price of the pannier bag",
+        "body": "How much does the rear pannier bag cost, and is it in stock?"
+      },
+      "expected": {
+        "department": "sales",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t19",
+      "input": {
+        "subject": "Discount for clubs?",
+        "body": "We're a cycling club with 12 members. Do you offer a discount if we all order the same jersey?"
+      },
+      "expected": {
+        "department": "sales",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t20",
+      "input": {
+        "subject": "City bike or e-bike?",
+        "body": "I have a 12 km commute with one steep hill. Would you recommend an e-bike or a regular city bike?"
+      },
+      "expected": {
+        "department": "sales",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t21",
+      "input": {
+        "subject": "Kids bike",
+        "body": "My daughter is 7. Which of your kids bikes would fit her?"
+      },
+      "expected": {
+        "department": "sales",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t22",
+      "input": {
+        "subject": "Price match",
+        "body": "I saw the Velo City 3 for 60 euros less at another shop. Do you match prices before I order?"
+      },
+      "expected": {
+        "department": "sales",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t23",
+      "input": {
+        "subject": "Rechnung fehlt",
+        "body": "Für Bestellung A-2023 habe ich keine Rechnung bekommen. Können Sie sie mir schicken?"
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "orderNumber": "A-2023"
+      }
+    },
+    {
+      "id": "t24",
+      "input": {
+        "subject": "Kette springt",
+        "body": "Seit gestern springt die Kette bei jedem zweiten Gang. Ich kann so nicht zur Arbeit fahren."
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": true,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t25",
+      "input": {
+        "subject": "Welche Größe?",
+        "body": "Ich bin 1,68 m groß. Welche Rahmengröße empfehlen Sie für das Velo City 3?"
+      },
+      "expected": {
+        "department": "sales",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t26",
+      "input": {
+        "subject": "Paid but not confirmed",
+        "body": "I paid by bank transfer four days ago but order A-2026 still says 'awaiting payment'."
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "orderNumber": "A-2026"
+      }
+    },
+    {
+      "id": "t27",
+      "input": {
+        "subject": "Change delivery address",
+        "body": "Can you ship order A-2027 to my office instead? It hasn't shipped yet."
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "orderNumber": "A-2027"
+      }
+    },
+    {
+      "id": "t28",
+      "input": {
+        "subject": "Spare tube size",
+        "body": "Which inner tube size do I need for my Velo City 3? I'd like to buy two."
+      },
+      "expected": {
+        "department": "sales",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t29",
+      "input": {
+        "subject": "Loose thing at the back",
+        "body": "Something at the back of my bike rattles since I hit a pothole. Not sure what it is."
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": false,
+        "orderNumber": null
+      }
+    },
+    {
+      "id": "t30",
+      "input": {
+        "subject": "Tyre punctured, tour tomorrow",
+        "body": "I have a puncture and leave for a bike tour tomorrow morning. Can you tell me how to fix it tonight?"
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": true,
+        "orderNumber": null
+      }
+    }
+  ]
+}

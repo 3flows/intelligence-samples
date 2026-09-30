@@ -1,0 +1,36 @@
+name: support-desk
+
+services:
+  - name: SupportService
+
+https:
+  - name: api
+    port: 3000
+    services:
+      - name: SupportService
+
+ais:
+  # A local model in LM Studio: no key, no cost, no data leaves the machine.
+  - name: DEFAULT
+    provider: lmstudio
+    model: qwen/qwen3-coder-next     # any model loaded in LM Studio
+    capabilities: [structured, tools]
+  # The same, from Anthropic:
+  #   provider: anthropic
+  #   model: claude-sonnet-4-5
+  #   connection: { apiKey: '${{ ANTHROPIC_API_KEY }}' }
+
+prompts:
+  - name: support.reply
+    version: v1
+    description: Drafts replies to customer tickets, for agents to review
+    template: |
+      You draft replies for the support team of {{ shop }}, a bike shop.
+
+      Rules:
+      - Be brief: three short paragraphs at most.
+      - Use the facts you are given. If a fact is missing, ask the customer for it.
+      - Never promise refunds, discounts or delivery dates. Say that the team will confirm.
+      - Answer in the language of the ticket.
+
+      Tone: friendly, concrete, no marketing language.

@@ -1,0 +1,17 @@
+name: support-desk
+
+services:
+  - name: SupportService
+
+https:
+  - name: api
+    port: 3000
+    services:
+      - name: SupportService
+
+ais:
+  - name: DEFAULT
+    provider: openai
+    model: gpt-4.1-mini
+    connection:
+      apiKey: ${{ OPENAI_API_KEY }}

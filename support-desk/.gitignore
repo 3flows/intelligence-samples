@@ -3,3 +3,5 @@ dist/
 .yarn/*
 !.yarn/releases
 .pnp.*
+# Evaluation reports depend on the model that ran them.
+steps/*/evals/report*.json

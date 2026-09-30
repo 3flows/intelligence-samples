@@ -15,13 +15,13 @@ in one read:** what does the model get, what may it do, what happens with the an
 
 | You need… | Use | Not |
 |---|---|---|
-| Text in, text out | `Intelligence.inference().chat()…ask(q)` | A vendor SDK |
+| Text in, text out | `trigger.context.inference().chat()…ask(q)` in an `IntelligenceService` | A vendor SDK |
 | One option of a fixed set | `.choice(name).oneOf(options)` | Parsing `chat()` text |
 | Several options of a fixed set | `.choice(name).manyOf(options)` | Comma-separated text |
 | Yes or no | `.check(name)` | `answer.includes('yes')` |
 | A number on a scale | `.score(name).between(min, max).criteria(...)` | `parseInt(answer)` |
 | A record with fields | `.extract(name).schema(zod)` | "Answer in JSON" prompts |
-| A chat that remembers | `Intelligence.conversations().conversation(id)` | Arrays of messages on the service |
+| A chat that remembers | `trigger.context.conversations().conversation(id)` | Arrays of messages on the service |
 | The model looks something up | `.tools(...)` / `.service(name, method)` | Pre-loading every record into the prompt |
 | Search by meaning | `.embedding()` + the platform's `vectors` | Keyword search, own vector math |
 | Better ordering of search hits | `.reranker()` | Asking a chat model to sort |
@@ -46,13 +46,15 @@ If nothing fits, stop and ask the human.
 11. **Conversation ids come from the domain** (`ticket-<id>`) and are checked against the caller.
 12. **Tag calls with `.metadata({...})`** (ticket, job), so runs are traceable and costs attributable.
 13. **Tests never call a real model.** Use the scripted provider and `runOffline(yaml)`. Real-model runs are evaluations, kept out of `yarn test`.
+14. **Services that use AI extend `IntelligenceService`** and reach it through `trigger.context` (`inference()`, `conversations()`, `prompts()`). Use the static `Intelligence.*` only outside services: scripts, evaluations, tests.
+15. **A change to prompts, option descriptions, judges or models comes with an evaluation run**, and the reviewer's view names the numbers before and after, and the cases that got worse.
 
 ## 3. The shapes to copy
 
 **A decision, in a service**
 
 ```ts
-const department = await Intelligence.inference()
+const department = await trigger.context.inference()
     .choice('department')
     .model('triage')
     .metadata({ ticketId: ticket.id, job: 'triage' })
@@ -67,7 +69,7 @@ await tickets.by(ticket.id).set({ ...ticket, department: department.value, depar
 
 ```ts
 const articles = await trigger.context.service('HelpCenterService').method('searchArticles').input({ query: message, limit: 4 }).call<Passage[]>();
-const answer = await Intelligence.conversations()
+const answer = await trigger.context.conversations()
     .conversation(`ticket-${ticket.id}`)
     .prompt('support.chat', { shop: 'Velo' })
     .with({ subject: ticket.subject, body: ticket.body })
@@ -139,6 +141,6 @@ their whole history. Platform handlers validate input but don't apply Zod defaul
 ## 6. Where to look
 
 1. This file, then the platform's AGENTS.md.
-2. The steps in `support-desk/steps/`: find the closest one and copy its patterns.
+2. The steps in `support-desk/steps/`: find the closest one and copy its patterns. Part 5 (steps 16–21) for evaluations and guardrails.
 3. The docs: https://3flows.github.io/intelligence-docs/ – especially *Core concepts* and the *Fluent API* reference.
 4. The public types of `@3flows/intelligence`.

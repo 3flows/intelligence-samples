@@ -6,44 +6,62 @@ Runnable samples for [`@3flows/intelligence`](https://github.com/3flows/intellig
 
 ## Support desk
 
-The support desk of Velo, a small bike shop, growing step by step: from a first question to a model, to tickets that are
-routed, tagged and extracted into data, a chat with memory, tools and the help center, and finally one model per job,
-guardrails and a record of every model call. Every step continues from the one before it.
+The support desk of Velo, a small bike shop, in six parts. Every step continues from the one before it.
 
 | Step | Concept |
 |---|---|
-| **Part 1: Ask the model** | |
-| [00-hello-model](support-desk/steps/00-hello-model) | `ais`, `chat().ask()` |
-| [01-give-it-a-job](support-desk/steps/01-give-it-a-job) | `instructions`, `with`, immutable chains |
-| [02-prompts-in-yaml](support-desk/steps/02-prompts-in-yaml) | `prompts`: named, versioned, with variables |
-| [03-test-without-a-model](support-desk/steps/03-test-without-a-model) | A scripted provider: tests without a model |
+| **Part 1: Your first intelligent service** | |
+| [01-intelligent-service](support-desk/steps/01-intelligent-service) | `IntelligenceService`, `trigger.context.inference()`, `ais` |
+| [02-anatomy-of-a-call](support-desk/steps/02-anatomy-of-a-call) | Instructions, input, question; immutable chains |
+| [03-prompts-as-configuration](support-desk/steps/03-prompts-as-configuration) | `prompts`: named, versioned, with variables |
+| [04-swap-and-test](support-desk/steps/04-swap-and-test) | Another provider, a local model, and tests without a model |
 | **Part 2: Turn language into data** | |
-| [04-route-tickets](support-desk/steps/04-route-tickets) | `choice().oneOf()` |
-| [05-tag-topics](support-desk/steps/05-tag-topics) | `choice().manyOf()` |
-| [06-flag-urgent](support-desk/steps/06-flag-urgent) | `check()` |
-| [07-measure-frustration](support-desk/steps/07-measure-frustration) | `score()` |
-| [08-extract-triage](support-desk/steps/08-extract-triage) | `extract().schema()` |
-| [09-background-triage](support-desk/steps/09-background-triage) | Model calls from a queue, retries, failure as a state |
-| **Part 3: Talk and act** | |
-| [10-conversations](support-desk/steps/10-conversations) | `conversations()`, stored as entities |
-| [11-streaming](support-desk/steps/11-streaming) | `stream()` over HTTP |
-| [12-tools](support-desk/steps/12-tools) | Tools: a scoped order lookup |
-| [13-attachments](support-desk/steps/13-attachments) | Files from `blobs` with `withBlob()` |
-| **Part 4: Answer from knowledge** | |
-| [14-embeddings](support-desk/steps/14-embeddings) | `embedding()` and the platform's `vectors` |
-| [15-rag](support-desk/steps/15-rag) | Retrieval-augmented generation with sources |
-| [16-rerank](support-desk/steps/16-rerank) | `reranker()` |
-| **Part 5: Operate it** | |
-| [17-models-per-job](support-desk/steps/17-models-per-job) | Several `ais`, `.model()`, defaults |
-| [18-guardrails](support-desk/steps/18-guardrails) | `moderation()`, policy `check()`s, confidence gates |
-| [19-observability](support-desk/steps/19-observability) | Inference runs, `.metadata()`, tracers |
+| [05-choose](support-desk/steps/05-choose) | `choice().oneOf()`, `.manyOf()` |
+| [06-judge](support-desk/steps/06-judge) | `check()`, `score()` |
+| [07-extract](support-desk/steps/07-extract) | `extract().schema()` |
+| [08-meaning-and-action](support-desk/steps/08-meaning-and-action) | Business rules in code, fed by decisions |
+| **Part 3: Converse and act** | |
+| [09-remember](support-desk/steps/09-remember) | `conversations()`, stored as entities |
+| [10-stream](support-desk/steps/10-stream) | `stream()` over HTTP |
+| [11-act](support-desk/steps/11-act) | Tools, scoped to the customer |
+| **Part 4: Give it knowledge** | |
+| [12-documents-as-context](support-desk/steps/12-documents-as-context) | Files from `blobs` with `withBlob()` |
+| [13-embeddings](support-desk/steps/13-embeddings) | `embedding()` and the platform's `vectors` |
+| [14-rag](support-desk/steps/14-rag) | Retrieval-augmented generation with sources |
+| [15-rerank](support-desk/steps/15-rerank) | `reranker()` |
+| **Part 5: Quality and guardrails** | |
+| [16-measure](support-desk/steps/16-measure) | An evaluation set and `yarn eval:16` |
+| [17-improve-with-evidence](support-desk/steps/17-improve-with-evidence) | Targeted changes, compared with the baseline |
+| [18-judge-the-answers](support-desk/steps/18-judge-the-answers) | The model as judge: grounded, tone |
+| [19-guard-the-input](support-desk/steps/19-guard-the-input) | `moderation()`, policy checks, hand-over |
+| [20-guard-the-output](support-desk/steps/20-guard-the-output) | Review every reply before it's sent |
+| [21-humans-in-the-loop](support-desk/steps/21-humans-in-the-loop) | Confidence gates, corrections as evaluation cases |
+| **Part 6: Run it in production** | |
+| [22-model-per-job](support-desk/steps/22-model-per-job) | Several `ais`, `.model()`, an evaluation decides |
+| [23-dont-block](support-desk/steps/23-dont-block) | `mq`, retries, failure as a state |
+| [24-see-what-it-did](support-desk/steps/24-see-what-it-did) | Inference runs, `.metadata()`, tracers |
+| [25-going-live](support-desk/steps/25-going-live) | Production YAML, a parity test, retention |
 
 **Tests need no model and no key.** Every step's test runs the step's real YAML with every AI replaced by a scripted
 provider ([`_shared/scripted-ai.ts`](support-desk/steps/_shared/scripted-ai.ts), [`_shared/offline.ts`](support-desk/steps/_shared/offline.ts)).
 All platform providers are `memory`, so no database, broker or vector store is needed either.
 
-**Running a step** talks to a real model: OpenAI by default (`OPENAI_API_KEY`), a Jina reranker from step 16 (`JINA_API_KEY`).
-Or switch the `ais` entries to a [local model](https://3flows.github.io/intelligence-docs/docs/guides/local-models) with Ollama or LM Studio.
+**Running a step** talks to a real model: OpenAI by default (`OPENAI_API_KEY`), a Jina reranker from step 15 (`JINA_API_KEY`).
+Or a [local model](https://3flows.github.io/intelligence-docs/docs/guides/local-models): `yarn step:04:local` runs on LM Studio.
+
+**Evaluations** (Part 5) run a step against a real model and count how often it agrees with the team:
+
+```sh
+OPENAI_API_KEY=<key> yarn eval:16                      # triage, 30 tickets
+LOCAL_MODEL=qwen/qwen3-coder-next yarn eval:17         # after the improvements, compared with step 16
+LOCAL_MODEL=qwen/qwen3-coder-next yarn eval:18         # answers: retrieval, grounded, tone
+```
+
+`LOCAL_MODEL` runs every chat AI in LM Studio; see [`_shared/real.ts`](support-desk/steps/_shared/real.ts).
+
+**A preview:** `IntelligenceService` and `handler` come from [`_shared/intelligence-service.ts`](support-desk/steps/_shared/intelligence-service.ts),
+a change proposed for `@3flows/intelligence` that puts `inference()`, `conversations()` and `prompts()` into the trigger context.
+Once the library ships it, only the import changes.
 
 ## Start your own project
 
@@ -64,7 +82,7 @@ cd intelligence-samples/support-desk
 yarn install
 yarn test                 # every step, offline
 export OPENAI_API_KEY=<your key>
-yarn step:08              # a single step, with a real model
+yarn step:01              # a single step, with a real model
 ```
 
 To pick up newer `next` builds: `yarn up @3flows/intelligence@next @3flows/platform@next`.

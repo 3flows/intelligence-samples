@@ -1,0 +1,15 @@
+{
+  "about": "Customer questions for the chat assistant. `article` is the help center article that answers it; questions without one must be handed over.",
+  "cases": [
+    { "id": "q01", "input": { "question": "Can I return a helmet I bought five weeks ago? It's unused.", "article": "returns" } },
+    { "id": "q02", "input": { "question": "How long does it take until I get my money back after a return?", "article": "returns" } },
+    { "id": "q03", "input": { "question": "Is a worn chain covered by the warranty?", "article": "warranty" } },
+    { "id": "q04", "input": { "question": "How long is the warranty on the frame?", "article": "warranty" } },
+    { "id": "q05", "input": { "question": "Do you ship to Italy?", "article": "shipping" } },
+    { "id": "q06", "input": { "question": "My new brakes squeak. What should I do?", "article": "brakes" } },
+    { "id": "q07", "input": { "question": "My e-bike has much less range since it got cold. Is the battery broken?", "article": "battery" } },
+    { "id": "q08", "input": { "question": "The display shows error 503. What does that mean?", "article": "battery" } },
+    { "id": "q09", "input": { "question": "My inside leg is 80 cm. Which frame size do I need?", "article": "sizing" } },
+    { "id": "q10", "input": { "question": "Do you have a shop in Berlin where I can test ride?", "article": null } }
+  ]
+}
