@@ -1,0 +1,23 @@
+{
+  "name": "my-intelligence-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "yarn@4.18.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "start": "yarn build && node dist/main.js",
+    "test": "yarn build && node --test dist/*.test.js"
+  },
+  "dependencies": {
+    "@3flows/intelligence": "next",
+    "@3flows/platform": "next"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^6.0.3"
+  }
+}

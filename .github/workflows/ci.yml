@@ -1,0 +1,34 @@
+name: Samples
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [starter, support-desk]
+    env:
+      # Intelligence and the platform come from GitHub Packages. Provide a token with read:packages as
+      # the repository secret NPM_REPOSITORY_GH_TOKEN; without it, the workflow's own token is tried.
+      NPM_REPOSITORY_GH_TOKEN: ${{ secrets.NPM_REPOSITORY_GH_TOKEN || github.token }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install
+        run: corepack enable && yarn install --immutable
+
+      # Offline: every AI is replaced by the scripted provider. No model, no key.
+      - name: Test
+        run: yarn test

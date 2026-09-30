@@ -1,0 +1,14 @@
+name: my-intelligence-app
+
+# One HTTP server. There are no services on it yet, but /health, /ping and /metrics already work.
+https:
+  - name: api
+    port: 3000
+
+# One model. The key comes from the environment.
+ais:
+  - name: DEFAULT
+    provider: openai
+    model: gpt-4.1-mini
+    connection:
+      apiKey: ${{ OPENAI_API_KEY }}

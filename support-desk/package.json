@@ -1,0 +1,43 @@
+{
+  "name": "support-desk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Step-by-step AI support desk sample for 3flows Intelligence",
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "test": "yarn build && node --test --test-concurrency=1 dist/steps/*/*.test.js",
+    "step:00": "yarn build && node dist/steps/00-hello-model/main.js",
+    "step:01": "yarn build && node dist/steps/01-give-it-a-job/main.js",
+    "step:02": "yarn build && node dist/steps/02-prompts-in-yaml/main.js",
+    "step:03": "yarn build && node dist/steps/03-test-without-a-model/main.js",
+    "step:04": "yarn build && node dist/steps/04-route-tickets/main.js",
+    "step:05": "yarn build && node dist/steps/05-tag-topics/main.js",
+    "step:06": "yarn build && node dist/steps/06-flag-urgent/main.js",
+    "step:07": "yarn build && node dist/steps/07-measure-frustration/main.js",
+    "step:08": "yarn build && node dist/steps/08-extract-triage/main.js",
+    "step:09": "yarn build && node dist/steps/09-background-triage/main.js",
+    "step:10": "yarn build && node dist/steps/10-conversations/main.js",
+    "step:11": "yarn build && node dist/steps/11-streaming/main.js",
+    "step:12": "yarn build && node dist/steps/12-tools/main.js",
+    "step:13": "yarn build && node dist/steps/13-attachments/main.js",
+    "step:14": "yarn build && node dist/steps/14-embeddings/main.js",
+    "step:15": "yarn build && node dist/steps/15-rag/main.js",
+    "step:16": "yarn build && node dist/steps/16-rerank/main.js",
+    "step:17": "yarn build && node dist/steps/17-models-per-job/main.js",
+    "step:18": "yarn build && node dist/steps/18-guardrails/main.js",
+    "step:19": "yarn build && node dist/steps/19-observability/main.js"
+  },
+  "dependencies": {
+    "@3flows/intelligence": "next",
+    "@3flows/platform": "next"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "yarn@4.18.0"
+}

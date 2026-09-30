@@ -1,0 +1,69 @@
+name: support-desk
+
+services:
+  - name: SupportService
+  - name: OrdersService
+
+https:
+  - name: api
+    port: 3000
+    services:
+      - name: SupportService
+      - name: OrdersService
+        basepath: /orders
+
+ais:
+  - name: DEFAULT
+    provider: openai
+    model: gpt-4.1-mini
+    connection:
+      apiKey: ${{ OPENAI_API_KEY }}
+    defaults:
+      timeoutMs: 20000
+      retry:
+        attempts: 3
+        backoffMs: 1000
+
+prompts:
+  - name: support.reply
+    version: v1
+    description: Drafts replies to customer tickets, for agents to review
+    template: |
+      You draft replies for the support team of {{ shop }}, a bike shop.
+
+      Rules:
+      - Be brief: three short paragraphs at most.
+      - Use the facts you are given. If a fact is missing, ask the customer for it.
+      - Never promise refunds, discounts or delivery dates. Say that the team will confirm.
+      - Answer in the language of the ticket.
+
+      Tone: friendly, concrete, no marketing language.
+
+  - name: support.chat
+    version: v2
+    description: The assistant customers chat with on their ticket
+    template: |
+      You are the support assistant of {{ shop }}, a bike shop, chatting with a customer about their ticket.
+      You get the ticket as context. Help the customer, ask for missing details, and keep answers short.
+      Never promise refunds, discounts or delivery dates; say that the team will confirm.
+      If the customer asks about an order, look it up. Never guess an order's status.
+
+docs:
+  - name: DEFAULT
+    type: memory
+
+# Conversations are entities: durable, shared between instances, and queryable.
+conversations:
+  store:
+    type: entities
+
+entities:
+  backend: docs
+  ontologies:
+    - IntelligenceConversationsOntology
+
+mqs:
+  - name: DEFAULT
+    type: memory
+    use:
+      - SupportService
