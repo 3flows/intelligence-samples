@@ -5,21 +5,21 @@ __metadata:
   version: 10
   cacheKey: 10c0
 
-"@3flows/intelligence@npm:0.9.0-next.5":
-  version: 0.9.0-next.5
-  resolution: "@3flows/intelligence@npm:0.9.0-next.5::__archiveUrl=https%3A%2F%2Fnpm.pkg.github.com%2Fdownload%2F%403flows%2Fintelligence%2F0.9.0-next.5%2F4ca68d9ad4b4e53e8516f72304795eefb69a1856"
+"@3flows/intelligence@npm:0.9.0-next.6":
+  version: 0.9.0-next.6
+  resolution: "@3flows/intelligence@npm:0.9.0-next.6::__archiveUrl=https%3A%2F%2Fnpm.pkg.github.com%2Fdownload%2F%403flows%2Fintelligence%2F0.9.0-next.6%2Fbdf2c68d5ad11709c3a0368a7ba35d0f00776284"
   dependencies:
-    "@3flows/platform": "npm:0.9.0-next.31"
+    "@3flows/platform": "npm:0.9.0-next.33"
     "@azure/identity": "npm:^4.13.3"
     "@mlflow/core": "npm:^0.4.0"
     "@prometheus-io/client": "npm:^0.16.1"
-  checksum: 10c0/3d87f18dc6d8c8304e59477b53684cc1cb929ccb846950032326136ae15f2fbe1183050a14594ec92a5ce83ba992ee736d1a6750cee395b4f135f7c342c9cef0
+  checksum: 10c0/9b7a1cabbcd04f9b6d20c16b076616bdfcf8d9cc20fa01e437995bab1b32f164b6b608acaa47253f96d8d64f4a79d64f918dd8740ba5a1d7c40a8f583a97d262
   languageName: node
   linkType: hard
 
-"@3flows/platform@npm:0.9.0-next.31":
-  version: 0.9.0-next.31
-  resolution: "@3flows/platform@npm:0.9.0-next.31::__archiveUrl=https%3A%2F%2Fnpm.pkg.github.com%2Fdownload%2F%403flows%2Fplatform%2F0.9.0-next.31%2F7c8656099f6cc8d67537866bde83f75ebb71bd67"
+"@3flows/platform@npm:0.9.0-next.33":
+  version: 0.9.0-next.33
+  resolution: "@3flows/platform@npm:0.9.0-next.33::__archiveUrl=https%3A%2F%2Fnpm.pkg.github.com%2Fdownload%2F%403flows%2Fplatform%2F0.9.0-next.33%2F5912773e53c4b473f1ac0bac3802bef483e12a5b"
   dependencies:
     "@apollo/server": "npm:^5.5.1"
     "@as-integrations/express5": "npm:^1.1.2"
@@ -78,7 +78,7 @@ __metadata:
     ws: "npm:^8.22.0"
     yaml: "npm:^2.9.1"
     zod: "npm:^4.6.7"
-  checksum: 10c0/6615eb22d7f466f922c30c437cc75b0c0f31b8efd662c53663fdf899a5b14cee0dd61dda0c23e67d0c5634de5f069e555edbeca319075f2efea5a39cae49b2d8
+  checksum: 10c0/05ddca10e58b154a9a333c538025aef79e73db685a4f669f51575de6e4c17424d728ee2de7c075cf88cbf3565890fed340f663e333d30d17c330d78aa4a98b45
   languageName: node
   linkType: hard
 
@@ -4308,8 +4308,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "my-intelligence-app@workspace:."
   dependencies:
-    "@3flows/intelligence": "npm:0.9.0-next.5"
-    "@3flows/platform": "npm:0.9.0-next.31"
+    "@3flows/intelligence": "npm:0.9.0-next.6"
+    "@3flows/platform": "npm:0.9.0-next.33"
     "@types/node": "npm:^24.0.0"
     typescript: "npm:^6.0.3"
   languageName: unknown
