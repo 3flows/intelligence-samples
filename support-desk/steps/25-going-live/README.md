@@ -1,6 +1,6 @@
 # Step 25 – Going live
 
-[`intelligence.production.yml`](intelligence.production.yml): MongoDB, Azure Blob Storage, RabbitMQ, same services, prompts and AIs; a parity test keeps it that way. `closeTicket` deletes the ticket's conversation.
+[`intelligence.production.yml`](intelligence.production.yml): MongoDB, Azure Blob Storage, RabbitMQ, same services, prompts and AIs; a parity test keeps it that way. `closeTicket` deletes the ticket's chat.
 
 ```sh
 yarn step:25                                            # development, memory providers

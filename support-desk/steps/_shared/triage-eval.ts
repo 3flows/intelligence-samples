@@ -19,7 +19,7 @@ export async function evaluateTriage(datasetPath: string, triage: Triage, models
         };
     });
 
-    const prompts = [...Intelligence.prompts().prompts.values()].map((prompt) => `prompt ${prompt.name}@${prompt.version ?? '-'}`);
+    const prompts = Intelligence.inspect().prompts.map((prompt) => `prompt ${prompt.name}@${prompt.version ?? '-'}`);
     return score('Triage evaluation', cases, outcomes, { models: models.map((m) => `ai ${m}`), prompts });
 }
 

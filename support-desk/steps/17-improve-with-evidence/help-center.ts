@@ -1,5 +1,5 @@
 import { Register, t } from '@3flows/platform';
-import { IntelligenceContext, IntelligenceService, handler } from '../_shared/intelligence-service.js';
+import { IntelligenceServiceContext, IntelligenceService, handler } from '@3flows/intelligence';
 
 export const Article = t.object({ id: t.string(), title: t.string(), body: t.string() });
 export type Article = t.infer<typeof Article>;
@@ -10,7 +10,7 @@ export type Passage = t.infer<typeof Passage>;
 export const SearchQuery = t.object({ query: t.string(), limit: t.number().optional() });
 
 /** The bridge between Intelligence and the platform's vector store: text in, vector out. */
-export const embedder = (context: Pick<IntelligenceContext, 'inference'>) => async (text: string): Promise<number[]> =>
+export const embedder = (context: Pick<IntelligenceServiceContext, 'inference'>) => async (text: string): Promise<number[]> =>
     (await context.inference().embedding().with(text).embed()).vector!;
 
 /** One passage per paragraph, so every vector means one thing. */
@@ -59,7 +59,7 @@ export class HelpCenterService extends IntelligenceService {
                 .query(query)
                 .with(candidates, { text: (candidate) => candidate.text, id: (candidate) => candidate.id })
                 .topK(limit)
-                .rank();
+                .rerank();
 
             await trigger.ok(ranked.results.map(({ index }) => toPassage(candidates[index])));
         })

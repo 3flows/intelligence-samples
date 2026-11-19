@@ -34,8 +34,8 @@ describe('Step 02: anatomy of a call', () => {
     test('chains are immutable: a shared base never collects input', async () => {
         const base = Intelligence.inference().chat().instructions('Be brief.');
 
-        await base.with('first ticket').ask('Reply.');
-        await base.with('second ticket').ask('Reply.');
+        await base.with('first ticket').question('Reply.').answer();
+        await base.with('second ticket').question('Reply.').answer();
 
         assert.deepEqual(ScriptedAI.requests[1].inputs, [
             { type: 'text', text: 'second ticket' },

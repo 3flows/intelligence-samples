@@ -1,6 +1,6 @@
 # Step 24 – See what it did
 
-`.metadata({ ticketId, job })` on every call. `ticketUsage` sums tokens per job, `explain` lists the calls. Optional MLflow traces under `tracers`.
+`.metadata({ purpose, subjectType, subjectId })` on every call links it to its ticket. With the `IntelligenceTrace` domain registered, every call is a queryable record: `ticketUsage` sums tokens per job, `explain` lists the calls. Optional MLflow traces under `tracers`.
 
 ```sh
 yarn step:24

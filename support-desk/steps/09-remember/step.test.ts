@@ -9,7 +9,7 @@ import './services.js';
 
 const ticket = { email: 'ada@example.com', subject: 'Brake pads', body: 'The pads from A-1042 do not fit my Velo City 3.' };
 
-describe('Step 09: remember the conversation', () => {
+describe('Step 09: remember', () => {
     let id: string;
 
     before(async () => {
@@ -46,7 +46,7 @@ describe('Step 09: remember the conversation', () => {
         assert.ok(!request.messages.some((m) => JSON.stringify(m.content).includes('do not fit my Velo City 3')));
     });
 
-    test('the transcript is stored as entities', async () => {
+    test('the chat is stored under the ticket id, as our own record', async () => {
         const transcript = await post('http://127.0.0.1:3000/transcript', { ticketId: id });
 
         assert.deepEqual(transcript.slice(0, 2), [
@@ -55,7 +55,7 @@ describe('Step 09: remember the conversation', () => {
         ]);
     });
 
-    test('another ticket has its own conversation', async () => {
+    test('another ticket has its own chat', async () => {
         ScriptedAI.reset(triageScript());
         const other = (await post('http://127.0.0.1:3000/createTicket', { ...ticket, email: 'grace@example.com' })).id;
 

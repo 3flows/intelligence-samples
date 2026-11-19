@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Register, t } from '@3flows/platform';
-import { ConversationMessageEntity } from '@3flows/intelligence';
-import { IntelligenceContext, IntelligenceService, handler } from '../_shared/intelligence-service.js';
+import { IntelligenceServiceContext, IntelligenceService, handler } from '@3flows/intelligence';
+import { ChatTurn, chatOf, recent, remember } from './chat.js';
 import { Department, Triage, triage } from './triage.js';
 
 export const Ticket = t.object({
@@ -18,9 +18,10 @@ export const ChatMessage = t.object({ ticketId: t.string(), message: t.string() 
 export const ChatAnswer = t.object({ answer: t.string() });
 const Message = t.object({ role: t.string(), content: t.string() });
 
-/** The assistant for one ticket: its conversation, its prompt, and the ticket as context. */
-const assistant = (context: Pick<IntelligenceContext, 'conversations'>, ticket: StoredTicket) => context.conversations()
-    .conversation(`ticket-${ticket.id}`)
+/** The assistant for one ticket: its history, its prompt, and the ticket as context. */
+const assistant = (context: Pick<IntelligenceServiceContext, 'inference'>, ticket: StoredTicket, history: ChatTurn[]) => context.inference()
+    .chat()
+    .messages(recent(history))
     .prompt('support.chat', { shop: 'Velo' })
     .with({ subject: ticket.subject, body: ticket.body, triage: ticket.triage });
 
@@ -32,7 +33,8 @@ export class SupportService extends IntelligenceService {
                 .chat()
                 .prompt('support.reply', { shop: 'Velo' })
                 .with(ticket)
-                .ask('Draft a reply to this ticket.');
+                .question('Draft a reply to this ticket.')
+                .answer();
             await trigger.ok({ reply: answer.text ?? '' });
         }),
 
@@ -59,16 +61,14 @@ export class SupportService extends IntelligenceService {
             const ticket = await trigger.context.doc().collection('tickets').by(ticketId).get<StoredTicket>();
             if (!ticket) return trigger.notFound(`Ticket ${ticketId} not found`);
 
-            const answer = await assistant(trigger.context, ticket).ask(message);
+            const history = await chatOf(trigger.context, ticketId);
+            const answer = await assistant(trigger.context, ticket, history).question(message).answer();
+            await remember(trigger.context, ticketId, message, answer.text ?? '');
             await trigger.ok({ answer: answer.text ?? '' });
         }),
 
         handler('transcript', t.object({ ticketId: t.string() }), t.array(Message), async ({ ticketId }, trigger) => {
-            const messages = await ConversationMessageEntity
-                .find({ conversationKey: `ticket-${ticketId}` })
-                .sort({ index: 1 })
-                .all();
-            await trigger.ok(messages.map((message: any) => ({ role: message.data.role, content: message.data.content })));
+            await trigger.ok(await chatOf(trigger.context, ticketId));
         }),
 
         // Business rule at work: a department's tickets, high priority first.

@@ -1,0 +1,34 @@
+{
+  "articles": [
+    {
+      "id": "returns",
+      "title": "Returns and refunds",
+      "body": "You can return any unused item within 30 days of delivery. Bikes must be unridden and in their original packaging.\n\nRefunds are paid to the original payment method within 14 days of us receiving the item.\n\nTo start a return, reply to your order confirmation with the order number and the items you want to return."
+    },
+    {
+      "id": "warranty",
+      "title": "Warranty",
+      "body": "Frames have a 5-year warranty, all other parts 2 years. The warranty covers defects in material and workmanship, not wear such as brake pads, tyres and chains.\n\nFor a warranty claim, send us the order number, a description of the defect and a photo."
+    },
+    {
+      "id": "shipping",
+      "title": "Shipping",
+      "body": "Orders ship within two business days. Bikes are delivered 90% assembled.\n\nYou get a tracking link by email as soon as your parcel has left our warehouse.\n\nWe ship to Germany, Austria and Switzerland."
+    },
+    {
+      "id": "brakes",
+      "title": "Brake maintenance",
+      "body": "New disc brake pads need to bed in: brake firmly from moderate speed about twenty times. Until then, a little squeaking is normal.\n\nIf brakes keep squeaking after bedding in, clean the discs with isopropyl alcohol. Never use oil or lubricant near the brakes.\n\nThe Velo City 3 uses resin disc pads of type B01."
+    },
+    {
+      "id": "battery",
+      "title": "E-bike batteries",
+      "body": "Charge the battery with the original charger only. A full charge takes about four hours.\n\nFor long storage, keep the battery at 30 to 60 percent charge in a dry place.\n\nBatteries lose up to 30% of range below 5 °C. Store and charge them indoors in winter, and insert them just before riding.\n\nError 503 on the display means the motor sensor doesn't respond. Switch the bike off and on; if the error persists, contact support."
+    },
+    {
+      "id": "sizing",
+      "title": "Finding the right frame size",
+      "body": "Measure your inside leg length and multiply it by 0.66 to get the frame size in centimetres.\n\nBetween two sizes, choose the smaller one for a sportier position and the larger one for a relaxed position."
+    }
+  ]
+}

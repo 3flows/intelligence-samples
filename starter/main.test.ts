@@ -21,10 +21,4 @@ describe('my-intelligence-app', () => {
         assert.equal(ai.name, 'DEFAULT');
         assert.equal(ai.model, 'gpt-4.1-mini');
     });
-
-    test('0.9 configuration concepts are registered', () => {
-        const inspection = Intelligence.inspect();
-        assert.ok(inspection.prompts.some((prompt) => prompt.name === 'support.chatbot.base'));
-        assert.ok(inspection.chatbots.some((chatbot: any) => chatbot.name === 'support'));
-    });
 });

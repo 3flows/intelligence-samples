@@ -46,13 +46,3 @@ prompts:
 docs:
   - name: DEFAULT
     type: memory
-
-# Conversations are entities: durable, shared between instances, and queryable.
-conversations:
-  store:
-    type: entities
-
-entities:
-  backend: docs
-  ontologies:
-    - IntelligenceConversationsOntology

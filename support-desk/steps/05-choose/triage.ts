@@ -1,5 +1,5 @@
 import { t } from '@3flows/platform';
-import { IntelligenceContext } from '../_shared/intelligence-service.js';
+import { IntelligenceServiceContext } from '@3flows/intelligence';
 // The desk's triage policy: what the model decides about a ticket. Each chapter adds one question.
 
 export const Department = t.enum(['billing', 'technical', 'sales']);
@@ -23,16 +23,20 @@ export const Triage = t.object({
 export type Triage = t.infer<typeof Triage>;
 
 /** Everything the desk wants to know about a ticket, decided by the model. */
-export async function triage(context: Pick<IntelligenceContext, 'inference'>, ticket: { subject: string; body: string }): Promise<Triage> {
+export async function triage(context: Pick<IntelligenceServiceContext, 'inference'>, ticket: { subject: string; body: string }): Promise<Triage> {
     const ai = context.inference();
     const text = { subject: ticket.subject, body: ticket.body };
 
     // Independent questions about the same text: ask them in parallel.
     const [department, topics] = await Promise.all([
-        ai.choice('department').oneOf(departments).with(text)
-            .ask('Which team should handle this ticket?'),
-        ai.choice('topics').manyOf(Topic.options).with(text)
-            .ask('Which topics does this ticket mention?')
+        ai.choice('department').oneOf(departments)
+            .instructions('Which team should handle this ticket?')
+            .state(text)
+            .decide(),
+        ai.choice('topics').manyOf(Topic.options)
+            .instructions('Which topics does this ticket mention?')
+            .state(text)
+            .decide()
     ]);
 
     return {

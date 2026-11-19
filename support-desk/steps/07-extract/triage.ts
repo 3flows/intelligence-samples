@@ -1,5 +1,5 @@
 import { t } from '@3flows/platform';
-import { IntelligenceContext } from '../_shared/intelligence-service.js';
+import { IntelligenceServiceContext } from '@3flows/intelligence';
 // The desk's triage policy: what the model decides about a ticket. Each chapter adds one question.
 
 export const Department = t.enum(['billing', 'technical', 'sales']);
@@ -40,22 +40,31 @@ export const Triage = Facts.extend({
 export type Triage = t.infer<typeof Triage>;
 
 /** Everything the desk wants to know about a ticket, decided by the model. */
-export async function triage(context: Pick<IntelligenceContext, 'inference'>, ticket: { subject: string; body: string }): Promise<Triage> {
+export async function triage(context: Pick<IntelligenceServiceContext, 'inference'>, ticket: { subject: string; body: string }): Promise<Triage> {
     const ai = context.inference();
     const text = { subject: ticket.subject, body: ticket.body };
 
     // Independent questions about the same text: ask them in parallel.
     const [department, topics, urgent, frustration, facts] = await Promise.all([
-        ai.choice('department').oneOf(departments).with(text)
-            .ask('Which team should handle this ticket?'),
-        ai.choice('topics').manyOf(Topic.options).with(text)
-            .ask('Which topics does this ticket mention?'),
-        ai.check('urgent').with(text)
-            .ask('Does the customer need an answer today, for example because of a deadline, a safety issue or a bike they cannot ride?'),
-        ai.score('frustration').between(0, 10).criteria(...frustrationScale).with(text)
-            .ask('How frustrated is the customer?'),
-        ai.extract('facts').schema(Facts).with(text)
-            .ask('Extract the facts of this ticket.')
+        ai.choice('department').oneOf(departments)
+            .instructions('Which team should handle this ticket?')
+            .state(text)
+            .decide(),
+        ai.choice('topics').manyOf(Topic.options)
+            .instructions('Which topics does this ticket mention?')
+            .state(text)
+            .decide(),
+        ai.check('urgent')
+            .instructions('Does the customer need an answer today, for example because of a deadline, a safety issue or a bike they cannot ride?')
+            .state(text)
+            .decide(),
+        ai.score('frustration').between(0, 10).criteria(...frustrationScale)
+            .instructions('How frustrated is the customer?')
+            .state(text)
+            .decide(),
+        ai.extract('facts').schema(Facts).from(text)
+            .instructions('Extract the facts of this ticket.')
+            .extract()
     ]);
 
     return {

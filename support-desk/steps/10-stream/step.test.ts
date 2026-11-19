@@ -4,7 +4,7 @@ import { Platform } from '@3flows/platform';
 import { runOffline } from '../_shared/offline.js';
 import { ScriptedAI } from '../_shared/scripted-ai.js';
 import { triageScript } from '../_shared/triage-script.js';
-import { post } from '../_shared/test-helpers.js';
+import { eventually, post } from '../_shared/test-helpers.js';
 import './services.js';
 
 describe('Step 10: stream the answer', () => {
@@ -33,7 +33,8 @@ describe('Step 10: stream the answer', () => {
         assert.equal(pieces.join(''), 'The Velo City 3 uses resin disc pads, type B01.');
     });
 
-    test('the streamed turn is part of the conversation', async () => {
+    test('the streamed turn is stored when the stream has finished, and the next turn sees it', async () => {
+        await eventually(async () => (await post('http://127.0.0.1:3000/transcript', { ticketId: id })).length === 2);
         await post('http://127.0.0.1:3000/chat', { ticketId: id, message: 'Thanks!' });
 
         const [request] = ScriptedAI.requests;

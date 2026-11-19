@@ -1,4 +1,4 @@
-import { IntelligenceContext } from '../_shared/intelligence-service.js';
+import { IntelligenceServiceContext } from '@3flows/intelligence';
 import { Source, grounded } from './judges.js';
 import { TRIAGE } from './triage.js';
 
@@ -8,31 +8,33 @@ export const HANDOVER = 'Thanks. A colleague will take it from here.';
 export type Verdict = { allowed: true } | { allowed: false; reason: string };
 
 /** Before the model: may the assistant answer this message at all? */
-export async function screen(context: Pick<IntelligenceContext, 'inference'>, message: string): Promise<Verdict> {
+export async function screen(context: Pick<IntelligenceServiceContext, 'inference'>, message: string): Promise<Verdict> {
     const ai = context.inference();
 
     // The provider's safety categories: abuse, hate, violence, self-harm, …
-    const moderation = await ai.moderation().check(message);
+    const moderation = await ai.moderation().input(message).moderate();
     if (moderation.flagged) return { allowed: false, reason: 'moderation' };
 
     // Our own red line: payment details are handled by people only.
     const payment = await ai.check('payment-details')
         .model(TRIAGE)
-        .with(message)
-        .ask('Does the message ask to change bank, payment or refund details, or contain card numbers?');
+        .instructions('Does the message ask to change bank, payment or refund details, or contain card numbers?')
+        .state(message)
+        .decide();
     if (payment.value) return { allowed: false, reason: 'payment-details' };
 
     return { allowed: true };
 }
 
 /** After the model: may the customer see this reply? */
-export async function review(context: Pick<IntelligenceContext, 'inference'>, reply: string, sources: Source[]): Promise<Verdict> {
+export async function review(context: Pick<IntelligenceServiceContext, 'inference'>, reply: string, sources: Source[]): Promise<Verdict> {
     const [promises, isGrounded] = await Promise.all([
         context.inference()
             .check('promises')
             .model(TRIAGE)
-            .with({ reply })
-            .ask('Does the reply promise a refund, a discount, a replacement or a delivery date?'),
+            .instructions('Does the reply promise a refund, a discount, a replacement or a delivery date?')
+            .state({ reply })
+            .decide(),
         grounded(context, reply, sources)
     ]);
     if (promises.value) return { allowed: false, reason: 'reply-promises' };

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { Configuration, Platform } from '@3flows/platform';
+import { Configuration } from '@3flows/platform';
+import { Intelligence } from '@3flows/intelligence';
 import './scripted-ai.js';
 
 /**
@@ -12,7 +13,7 @@ import './scripted-ai.js';
  */
 export async function runReal(path: string): Promise<string[]> {
     const notes: string[] = [];
-    await Platform.run({
+    await Intelligence.run({
         load: async () => {
             const yaml = Configuration.parse(await readFile(path, 'utf8')).toJSON() as any;
             const local = process.env.LOCAL_MODEL;

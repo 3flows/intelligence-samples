@@ -15,38 +15,41 @@ in one read:** what does the model get, what may it do, what happens with the an
 
 | You need… | Use | Not |
 |---|---|---|
-| Text in, text out | `trigger.context.inference().chat()…ask(q)` in an `IntelligenceService` | A vendor SDK |
-| One option of a fixed set | `.choice(name).oneOf(options)` | Parsing `chat()` text |
+| Text in, text out | `trigger.context.inference().chat()….question(q).answer()` in an `IntelligenceService` | A vendor SDK |
+| One option of a fixed set | `.choice(name).oneOf(options)….state(data).decide()` | Parsing `chat()` text |
 | Several options of a fixed set | `.choice(name).manyOf(options)` | Comma-separated text |
-| Yes or no | `.check(name)` | `answer.includes('yes')` |
-| A number on a scale | `.score(name).between(min, max).criteria(...)` | `parseInt(answer)` |
-| A record with fields | `.extract(name).schema(zod)` | "Answer in JSON" prompts |
-| A chat that remembers | `trigger.context.conversations().conversation(id)` | Arrays of messages on the service |
-| The model looks something up | `.tools(...)` / `.service(name, method)` | Pre-loading every record into the prompt |
+| Yes or no | `.check(name)….decide()` | `answer.includes('yes')` |
+| A number on a scale | `.score(name).between(min, max).criteria(...)….decide()` | `parseInt(answer)` |
+| A record with fields | `.extract(name).schema(zod).from(data).extract()` | "Answer in JSON" prompts |
+| A chat on a record the app owns (a ticket, a case) | `chat().messages(History.window(history, …))`, with the history stored in the app's own `docs` | Arrays of messages on the service; a chatbot fed with the app's data |
+| One person talking to one assistant, with its own sessions | A chatbot: `chatbots` in YAML | A hand-built session store |
+| A task worked on in several steps with tools | An agent: `agents` and `skills` in YAML, `trigger.context.agent(name).using(context).task(…).run()` | A hand-written tool loop |
+| A known process: steps, branches, retries | A workflow: `workflow(name).step(…)…`, run with `trigger.context.workflow(name).input(…).report()` | Nested try/catch in a handler |
+| The model looks something up | `.tools(...)` / `.service(name, method)` / `tool(...)` handlers with `.toolsFrom(service)` | Pre-loading every record into the prompt |
 | Search by meaning | `.embedding()` + the platform's `vectors` | Keyword search, own vector math |
 | Better ordering of search hits | `.reranker()` | Asking a chat model to sort |
 | Audio to text / text to audio | `.transcriber()` / `.speech()` | Vendor SDKs |
-| Safety screening | `.moderation().check(text)` | A chat prompt asking "is this safe?" |
+| Safety screening | `.moderation().input(text).moderate()` | A chat prompt asking "is this safe?" |
 | Policy, tone, rules | `prompts` in YAML + `.prompt(name, vars)` | String constants in code |
 
 If nothing fits, stop and ask the human.
 
 ## 2. Hard rules
 
-1. **Import only from `@3flows/intelligence` and `@3flows/platform`.** No vendor SDKs (`openai`, `@anthropic-ai/sdk`, …) in application code.
+1. **Import only from `@3flows/intelligence` and `@3flows/platform`, and pin both.** Intelligence names the exact Platform version it needs; there must be exactly one Platform in `node_modules`. No vendor SDKs (`openai`, `@anthropic-ai/sdk`, …) in application code.
 2. **Code asks for a capability; YAML decides the model.** Providers, models, keys and defaults live in `ais`. Use `.model(name)` only to name a *job* (`'triage'`), never a vendor.
-3. **Customer text goes into `.with(...)`, never into `instructions` or prompt templates.**
+3. **Customer text goes into `.with(...)` or `.state(...)`, never into `instructions` or prompt templates.**
 4. **Policy goes into `prompts` in YAML**, with a `version`. Bump it on every change.
 5. **Prefer decisions over text.** If code branches on the answer, it's a `choice`, `check`, `score` or `extract` – never parsed text.
 6. **Options are described** (`oneOf({ billing: 'Payments, invoices…' })`), scores have `criteria`, extraction fields that may be missing are `.nullable()` and `.describe()`d.
 7. **Store `reason`** with every decision a human might question later.
 8. **The model decides what the text means; code decides what happens.** Thresholds, priorities and actions are ordinary, tested code.
-9. **Tools are permissions.** List them explicitly per call. The model fills in every tool argument: never let it choose *whose* data it sees – close over the caller's identity (see step 12). No irreversible actions as tools without a human confirmation.
+9. **Tools are permissions.** List them explicitly per call. The model fills in every tool argument: never let it choose *whose* data it sees – close over the caller's identity (see step 11). No irreversible actions as tools without a human confirmation.
 10. **Model calls are slow remote calls.** Keep them off request paths where a person waits for something else (use `mq`), set `retry`/`timeoutMs` in `defaults`, and give every feature a defined behavior without an answer.
-11. **Conversation ids come from the domain** (`ticket-<id>`) and are checked against the caller.
-12. **Tag calls with `.metadata({...})`** (ticket, job), so runs are traceable and costs attributable.
+11. **Chat history is the app's record**, keyed by the domain (`ticket id`), checked against the caller, bounded with `History.window`, and deleted with the record it belongs to.
+12. **Tag calls with `.metadata({ subjectType, subjectId, purpose })`**, and register the `IntelligenceTrace` domain, so runs are traceable, costs attributable, and records deletable with their subject. Entity queries return ten records by default: use `.limit(0)` to read all.
 13. **Tests never call a real model.** Use the scripted provider and `runOffline(yaml)`. Real-model runs are evaluations, kept out of `yarn test`.
-14. **Services that use AI extend `IntelligenceService`** and reach it through `trigger.context` (`inference()`, `conversations()`, `prompts()`). Use the static `Intelligence.*` only outside services: scripts, evaluations, tests.
+14. **Services that use AI extend `IntelligenceService`** (with `handler` and `tool` from `@3flows/intelligence`) and reach it through `trigger.context` (`inference()`, `prompts()`, `agent()`, `workflow()`). Use the static `Intelligence.*` only outside services: scripts, evaluations, tests.
 15. **A change to prompts, option descriptions, judges or models comes with an evaluation run**, and the reviewer's view names the numbers before and after, and the cases that got worse.
 
 ## 3. The shapes to copy
@@ -57,25 +60,30 @@ If nothing fits, stop and ask the human.
 const department = await trigger.context.inference()
     .choice('department')
     .model('triage')
-    .metadata({ ticketId: ticket.id, job: 'triage' })
+    .metadata({ subjectType: 'ticket', subjectId: ticket.id, purpose: 'triage' })
     .oneOf(departments)                        // Record<Department, description>
-    .with({ subject: ticket.subject, body: ticket.body })
-    .ask('Which team should handle this ticket?');
+    .instructions('Which team should handle this ticket?')
+    .state({ subject: ticket.subject, body: ticket.body })
+    .decide();
 
 await tickets.by(ticket.id).set({ ...ticket, department: department.value, departmentReason: department.reason ?? null });
 ```
 
-**A conversation with a scoped tool and retrieval**
+**A chat on a ticket, with its history, a scoped tool and retrieval**
 
 ```ts
 const articles = await trigger.context.service('HelpCenterService').method('searchArticles').input({ query: message, limit: 4 }).call<Passage[]>();
-const answer = await trigger.context.conversations()
-    .conversation(`ticket-${ticket.id}`)
+const history = await chatOf(trigger.context, ticket.id);          // the app's own record, see step 09
+const answer = await trigger.context.inference()
+    .chat()
+    .messages(History.window(history, { maxMessages: 20 }))
     .prompt('support.chat', { shop: 'Velo' })
     .with({ subject: ticket.subject, body: ticket.body })
     .with({ articles })
     .tools(ordersOf(ticket, trigger.context))   // closes over ticket.email
-    .ask(message);
+    .question(message)
+    .answer();
+await remember(trigger.context, ticket.id, message, answer.text ?? '');
 ```
 
 **The YAML**
@@ -86,16 +94,17 @@ ais:
     provider: openai
     model: gpt-4.1
     connection: { apiKey: '${{ OPENAI_API_KEY }}' }
-    defaults: { temperature: 0.3, retry: { attempts: 3, backoffMs: 1000 } }
+    defaults: { temperature: 0.3, timeoutMs: 30000, retry: { attempts: 3, backoffMs: 1000 } }
   - name: triage                  # decisions
     provider: openai
     model: gpt-4.1-nano
     connection: { apiKey: '${{ OPENAI_API_KEY }}' }
-    defaults: { temperature: 0 }
+    defaults: { temperature: 0, timeoutMs: 20000 }
   - name: embeddings
     provider: openai
     model: text-embedding-3-small
     connection: { apiKey: '${{ OPENAI_API_KEY }}' }
+    defaults: { timeoutMs: 10000 }
 
 prompts:
   - name: support.chat
@@ -103,14 +112,12 @@ prompts:
     template: |
       …
 
-conversations:
-  store:
-    type: entities
-
 entities:
   backend: docs
-  ontologies:
-    - IntelligenceConversationsOntology
+  domains:
+    - IntelligenceTrace          # every model call, queryable
+    # - IntelligenceChatbot      # with `chatbots`
+    # - IntelligenceAgent        # with `agents`
 ```
 
 **A test**
@@ -135,12 +142,12 @@ beforeEach(() => ScriptedAI.reset((request) => request.responseSchemaName === 'd
 ## 5. Known gaps
 
 See https://3flows.github.io/intelligence-docs/docs/guides/known-gaps. In short: binary files (images, PDFs) aren't
-accepted in chat yet, `ocr` and `video` have no bundled provider, `stream()` doesn't run tools, and conversations send
-their whole history. Platform handlers validate input but don't apply Zod defaults: use destructuring defaults.
+supported by every provider, `ocr` and `video` need a provider that has them, and in `0.9.0-next.4` a chatbot session reads
+only its first ten stored messages. Platform handlers validate input but don't apply Zod defaults: use destructuring defaults.
 
 ## 6. Where to look
 
 1. This file, then the platform's AGENTS.md.
-2. The steps in `support-desk/steps/`: find the closest one and copy its patterns. Part 5 (steps 16–21) for evaluations and guardrails.
+2. The steps in `support-desk/steps/`: find the closest one and copy its patterns. Part 5 (steps 16–21) for evaluations and guardrails, Part 7 (steps 26–28) for chatbots, agents and workflows.
 3. The docs: https://3flows.github.io/intelligence-docs/ – especially *Core concepts* and the *Fluent API* reference.
 4. The public types of `@3flows/intelligence`.

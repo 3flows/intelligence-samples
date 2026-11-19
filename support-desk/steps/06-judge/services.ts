@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Register, t } from '@3flows/platform';
-import { IntelligenceService, handler } from '../_shared/intelligence-service.js';
+import { IntelligenceService, handler } from '@3flows/intelligence';
 import { Triage, triage } from './triage.js';
 
 export const Ticket = t.object({
@@ -21,7 +21,8 @@ export class SupportService extends IntelligenceService {
                 .chat()
                 .prompt('support.reply', { shop: 'Velo' })
                 .with(ticket)
-                .ask('Draft a reply to this ticket.');
+                .question('Draft a reply to this ticket.')
+                .answer();
             await trigger.ok({ reply: answer.text ?? '' });
         }),
 

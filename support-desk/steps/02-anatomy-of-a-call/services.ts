@@ -1,5 +1,5 @@
 import { Register, t } from '@3flows/platform';
-import { IntelligenceService, handler } from '../_shared/intelligence-service.js';
+import { IntelligenceService, handler } from '@3flows/intelligence';
 
 export const Ticket = t.object({
     email: t.string(),
@@ -13,7 +13,7 @@ export const Reply = t.object({ reply: t.string() });
 export class SupportService extends IntelligenceService {
     handlers = () => [
         handler('ask', t.object({ question: t.string() }), t.object({ answer: t.string() }), async ({ question }, trigger) => {
-            const answer = await trigger.context.inference().chat().ask(question);
+            const answer = await trigger.context.inference().chat().question(question).answer();
             await trigger.ok({ answer: answer.text ?? '' });
         }),
 
@@ -30,7 +30,8 @@ export class SupportService extends IntelligenceService {
                 // Input: the data this call works on.
                 .with(ticket)
                 // Question: the task of this call.
-                .ask('Draft a reply to this ticket.');
+                .question('Draft a reply to this ticket.')
+                .answer();
 
             await trigger.ok({ reply: answer.text ?? '' });
         })

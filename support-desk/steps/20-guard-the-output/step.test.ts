@@ -43,6 +43,6 @@ describe('Step 20: guard the output', () => {
 
         assert.equal((await getTicket(id)).escalation, 'reply-not-grounded');
         const judge = ScriptedAI.requests.find((r) => r.responseSchemaName === 'grounded')!;
-        assert.equal(JSON.parse(String(judge.messages[0].content)).state.inputs[0].reply, 'Returns are possible within 60 days.');
+        assert.equal(JSON.parse(String(judge.messages[0].content)).state.reply, 'Returns are possible within 60 days.');
     });
 });

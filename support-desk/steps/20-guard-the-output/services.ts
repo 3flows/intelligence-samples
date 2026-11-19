@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { Register, Route, TriggerContext, t } from '@3flows/platform';
-import { ConversationMessageEntity, InferenceTool } from '@3flows/intelligence';
-import { IntelligenceContext, IntelligenceService, handler, intelligence } from '../_shared/intelligence-service.js';
+import { InferenceTool, IntelligenceService, IntelligenceServiceContext, IntelligenceTrigger, handler } from '@3flows/intelligence';
 import { Passage } from './help-center.js';
 import { HANDOVER, review, screen } from './guardrails.js';
+import { ChatTurn, chatOf, recent, remember } from './chat.js';
 import { Department, Triage, triage, withAttachments } from './triage.js';
 
 export const Attachment = t.object({ name: t.string(), content: t.string().describe('Text content') });
@@ -30,10 +30,11 @@ export const ChatMessage = t.object({ ticketId: t.string(), message: t.string() 
 export const ChatAnswer = t.object({ answer: t.string(), sources: t.array(t.string()) });
 const Message = t.object({ role: t.string(), content: t.string() });
 
-/** The assistant for one ticket: its conversation, its prompt, and the ticket as context. */
-const assistant = (context: Pick<IntelligenceContext, 'conversations'>, ticket: StoredTicket) => withAttachments(
-    context.conversations()
-        .conversation(`ticket-${ticket.id}`)
+/** The assistant for one ticket: its history, its prompt, and the ticket as context. */
+const assistant = (context: Pick<IntelligenceServiceContext, 'inference'>, ticket: StoredTicket, history: ChatTurn[]) => withAttachments(
+    context.inference()
+        .chat()
+        .messages(recent(history))
         .prompt('support.chat', { shop: 'Velo' })
         .with({ subject: ticket.subject, body: ticket.body, triage: ticket.triage }),
     ticket
@@ -68,7 +69,8 @@ export class SupportService extends IntelligenceService {
                 .chat()
                 .prompt('support.reply', { shop: 'Velo' })
                 .with(ticket)
-                .ask('Draft a reply to this ticket.');
+                .question('Draft a reply to this ticket.')
+                .answer();
             await trigger.ok({ reply: answer.text ?? '' });
         }),
 
@@ -114,10 +116,12 @@ export class SupportService extends IntelligenceService {
             // Retrieve first, then answer from what was retrieved.
             const articles = await helpCenter(trigger.context, message);
 
-            const answer = await assistant(trigger.context, ticket)
+            const history = await chatOf(trigger.context, ticketId);
+            const answer = await assistant(trigger.context, ticket, history)
                 .tools(ordersOf(ticket, trigger.context))
                 .with({ articles })
-                .ask(message);
+                .question(message)
+                .answer();
 
             // After the model: the reply is checked before the customer sees it.
             const checked = await review(trigger.context, answer.text ?? '', articles);
@@ -126,15 +130,13 @@ export class SupportService extends IntelligenceService {
                 return trigger.ok({ answer: HANDOVER, sources: [] });
             }
 
+            await remember(trigger.context, ticketId, message, answer.text ?? '');
+
             await trigger.ok({ answer: answer.text ?? '', sources: articles.map((article) => article.id) });
         }),
 
         handler('transcript', t.object({ ticketId: t.string() }), t.array(Message), async ({ ticketId }, trigger) => {
-            const messages = await ConversationMessageEntity
-                .find({ conversationKey: `ticket-${ticketId}` })
-                .sort({ index: 1 })
-                .all();
-            await trigger.ok(messages.map((message: any) => ({ role: message.data.role, content: message.data.content })));
+            await trigger.ok(await chatOf(trigger.context, ticketId));
         }),
 
         // Business rule at work: a department's tickets, high priority first.
@@ -150,7 +152,7 @@ export class SupportService extends IntelligenceService {
         // The same assistant, streamed: the text is sent while it's generated.
         // A streamed reply can't be reviewed before it's sent: stream only where that's acceptable.
         route.http().post('/chat/stream').do(async (params, trigger) => {
-            const context = intelligence(trigger.context);
+            const context = trigger.context as IntelligenceTrigger['context'];
             const { ticketId, message } = ChatMessage.parse(params);   // routes don't validate: do it here
             const ticket = await context.doc().collection('tickets').by(ticketId).get<StoredTicket>();
             if (!ticket) return trigger.notFound(`Ticket ${ticketId} not found`);
@@ -163,15 +165,15 @@ export class SupportService extends IntelligenceService {
             }
 
             const articles = await helpCenter(context, message);
-            const events = await assistant(context, ticket).with({ articles }).stream(message);
+            const history = await chatOf(context, ticketId);
+            const stream = await assistant(context, ticket, history).with({ articles }).question(message).stream();
 
-            async function* text() {
-                for await (const event of events) {
-                    if (event.type === 'text.delta') yield event.text;
-                }
-            }
+            // The turn is stored when the stream has finished. A stream that breaks stores nothing.
+            stream.onSettled((result) => {
+                if (result.status === 'completed') void remember(context, ticketId, message, result.value.text ?? '');
+            });
 
-            trigger.setReadble(Readable.from(text()), { mimeType: 'text/plain; charset=utf-8' });
+            trigger.setReadble(stream.toReadable({ format: 'text' }), { mimeType: 'text/plain; charset=utf-8' });
             await trigger.ok();
         });
 

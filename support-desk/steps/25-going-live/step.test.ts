@@ -16,7 +16,7 @@ const settled = (id: string) => eventually(async () => { const t = await getTick
 
 import { readFile } from 'node:fs/promises';
 import { Configuration } from '@3flows/platform';
-import { ConversationMessageEntity } from '@3flows/intelligence';
+import { validateIntelligenceConfiguration } from '@3flows/intelligence';
 
 const yaml = async (file: string) => Configuration.parse(await readFile(`./steps/25-going-live/${file}`, 'utf8')).toJSON() as any;
 
@@ -33,17 +33,27 @@ describe('Step 25: going live', () => {
         assert.deepEqual(production.prompts, development.prompts);
         assert.deepEqual(production.ais, development.ais);
         assert.deepEqual([production.docs[0].type, production.vectors[0].type, production.blobs[0].type, production.mqs[0].type], ['mongo', 'mongo', 'azure', 'rabbitmq']);
-        assert.equal(production.conversations.store.type, 'entities');
+        assert.deepEqual(production.entities, development.entities);
     });
 
-    test('closing a ticket deletes its conversation', async () => {
+    test('both configurations pass the startup validation without a finding, production in strict mode', async () => {
+        for (const file of ['intelligence.yml', 'intelligence.production.yml']) {
+            const configuration = Configuration.parse(await readFile(`./steps/25-going-live/${file}`, 'utf8'));
+            assert.deepEqual(validateIntelligenceConfiguration(configuration), []);
+        }
+        assert.equal((await yaml('intelligence.production.yml')).intelligence.strict, true);
+    });
+
+    test('closing a ticket deletes its chat and the records of its model calls', async () => {
         const { id } = await createTicket();
         await settled(id);
         await post('http://127.0.0.1:3000/chat', { ticketId: id, message: 'Thanks!' });
-        assert.ok((await ConversationMessageEntity.find({ conversationKey: `ticket-${id}` }).all()).length > 0);
+        assert.equal((await post('http://127.0.0.1:3000/transcript', { ticketId: id })).length, 2);
+        assert.ok((await post('http://127.0.0.1:3000/ticketUsage', { ticketId: id })).calls > 0);
 
         await post('http://127.0.0.1:3000/closeTicket', { ticketId: id });
 
-        assert.equal((await ConversationMessageEntity.find({ conversationKey: `ticket-${id}` }).all()).length, 0);
+        assert.deepEqual(await post('http://127.0.0.1:3000/transcript', { ticketId: id }), []);
+        assert.equal((await post('http://127.0.0.1:3000/ticketUsage', { ticketId: id })).calls, 0);
     });
 });

@@ -25,7 +25,7 @@ describe('Step 18: judge the answers', () => {
         assert.equal(verdict.value, false);
         const [request] = ScriptedAI.requests;
         assert.equal(request.responseSchemaName, 'grounded');
-        assert.deepEqual(JSON.parse(String(request.messages[0].content)).state.inputs[0], { reply: 'You can return it within 60 days.', sources });
+        assert.deepEqual(JSON.parse(String(request.messages[0].content)).state, { reply: 'You can return it within 60 days.', sources });
     });
 
     test('tone: a score from 1 to 5, with anchors', async () => {

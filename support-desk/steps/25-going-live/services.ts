@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { Register, Route, TriggerContext, t } from '@3flows/platform';
-import { ConversationMessageEntity, InferenceRunEntity, InferenceTool } from '@3flows/intelligence';
-import { IntelligenceContext, IntelligenceService, handler, intelligence } from '../_shared/intelligence-service.js';
+import {
+    InferenceTool, IntelligenceService, IntelligenceServiceContext,
+    IntelligenceTraceDomain, IntelligenceTrigger, handler
+} from '@3flows/intelligence';
 import { Passage } from './help-center.js';
 import { HANDOVER, review, screen } from './guardrails.js';
+import { ChatTurn, chatOf, recent, remember } from './chat.js';
 import { Department, Triage, triage, withAttachments } from './triage.js';
 
 export const Attachment = t.object({ name: t.string(), content: t.string().describe('Text content') });
@@ -43,12 +46,13 @@ const Run = t.object({
     status: t.string()
 });
 
-/** The assistant for one ticket: its conversation, its prompt, and the ticket as context. */
-const assistant = (context: Pick<IntelligenceContext, 'conversations'>, ticket: StoredTicket) => withAttachments(
-    context.conversations()
-        .conversation(`ticket-${ticket.id}`)
+/** The assistant for one ticket: its history, its prompt, and the ticket as context. */
+const assistant = (context: Pick<IntelligenceServiceContext, 'inference'>, ticket: StoredTicket, history: ChatTurn[]) => withAttachments(
+    context.inference()
+        .chat()
+        .messages(recent(history))
         .prompt('support.chat', { shop: 'Velo' })
-        .metadata({ ticketId: ticket.id, job: 'chat' })
+        .metadata({ subjectType: 'ticket', subjectId: ticket.id, purpose: 'chat' })
         .with({ subject: ticket.subject, body: ticket.body, triage: ticket.triage }),
     ticket
 );
@@ -74,6 +78,30 @@ const ordersOf = (ticket: StoredTicket, context: TriggerContext): InferenceTool 
         .call()
 });
 
+/** Every model call made for a ticket: the inference runs tagged with it, and their calls to a provider. */
+async function callsOf(ticketId: string) {
+    const { InferenceRun, ModelCall } = IntelligenceTraceDomain;
+    // Entity queries return ten records unless told otherwise: limit(0) reads them all.
+    const runs = await InferenceRun.find({ subjectType: 'ticket', subjectId: ticketId }).limit(0).all();
+    const calls = await Promise.all(runs.map((run) => ModelCall.find({ run: run.reference() }).limit(0).all()));
+    return runs.flatMap((run, index) => calls[index].map((call) => ({ run: run.data, call: call.data })));
+}
+
+/** Retention for the trace domain: the runs made for a subject, with their calls and the inputs and outputs recorded for them. */
+async function forgetCallsOf(subjectType: string, subjectId: string): Promise<void> {
+    const { InferenceRun, ModelCall, InferenceArtifact, ToolExecution } = IntelligenceTraceDomain;
+    for (const run of await InferenceRun.find({ subjectType, subjectId }).limit(0).all()) {
+        const of = { run: run.reference() };
+        const records = [
+            ...(await ToolExecution.find(of).limit(0).all()),
+            ...(await InferenceArtifact.find(of).limit(0).all()),
+            ...(await ModelCall.find(of).limit(0).all())
+        ];
+        for (const record of records) await record.delete();
+        await run.delete();
+    }
+}
+
 /** Business rule: below this, a person routes the ticket. */
 const ROUTING_CONFIDENCE = 0.6;
 
@@ -96,7 +124,8 @@ export class SupportService extends IntelligenceService {
                 .chat()
                 .prompt('support.reply', { shop: 'Velo' })
                 .with(ticket)
-                .ask('Draft a reply to this ticket.');
+                .question('Draft a reply to this ticket.')
+                .answer();
             await trigger.ok({ reply: answer.text ?? '' });
         }),
 
@@ -143,10 +172,12 @@ export class SupportService extends IntelligenceService {
             // Retrieve first, then answer from what was retrieved.
             const articles = await helpCenter(trigger.context, message);
 
-            const answer = await assistant(trigger.context, ticket)
+            const history = await chatOf(trigger.context, ticketId);
+            const answer = await assistant(trigger.context, ticket, history)
                 .tools(ordersOf(ticket, trigger.context))
                 .with({ articles })
-                .ask(message);
+                .question(message)
+                .answer();
 
             // After the model: the reply is checked before the customer sees it.
             const checked = await review(trigger.context, answer.text ?? '', articles, ticketId);
@@ -155,50 +186,49 @@ export class SupportService extends IntelligenceService {
                 return trigger.ok({ answer: HANDOVER, sources: [] });
             }
 
+            await remember(trigger.context, ticketId, message, answer.text ?? '');
+
             await trigger.ok({ answer: answer.text ?? '', sources: articles.map((article) => article.id) });
         }),
 
         handler('transcript', t.object({ ticketId: t.string() }), t.array(Message), async ({ ticketId }, trigger) => {
-            const messages = await ConversationMessageEntity
-                .find({ conversationKey: `ticket-${ticketId}` })
-                .sort({ index: 1 })
-                .all();
-            await trigger.ok(messages.map((message: any) => ({ role: message.data.role, content: message.data.content })));
+            await trigger.ok(await chatOf(trigger.context, ticketId));
         }),
 
-        // Retention: a closed ticket's conversation is deleted, with its turns, messages, tool calls and runs.
+        // Retention: when a ticket is closed, what the customer wrote goes: the chat, and what was recorded of the model calls.
         handler('closeTicket', t.object({ ticketId: t.string() }), t.object({ closed: t.boolean() }), async ({ ticketId }, trigger) => {
-            const { doc, conversations } = trigger.context;
+            const { doc } = trigger.context;
             const ticket = await doc().collection('tickets').by(ticketId).get<StoredTicket>();
             if (!ticket) return trigger.notFound(`Ticket ${ticketId} not found`);
 
-            await conversations().conversation(`ticket-${ticketId}`).clear();
+            await doc().collection('chats').by(ticketId).remove();
+            await forgetCallsOf('ticket', ticketId);
             await trigger.ok({ closed: true });
         }),
 
         // What did the model do for this ticket, and what did it cost?
         handler('ticketUsage', t.object({ ticketId: t.string() }), Usage, async ({ ticketId }, trigger) => {
-            const runs = await InferenceRunEntity.find({ 'metadata.ticketId': ticketId }).all();
-            const usage = { calls: runs.length, inputTokens: 0, outputTokens: 0, byJob: {} as Record<string, number> };
-            for (const { data } of runs as any[]) {
-                usage.inputTokens += data.inputTokens;
-                usage.outputTokens += data.outputTokens;
-                usage.byJob[data.metadata.job] = (usage.byJob[data.metadata.job] ?? 0) + data.totalTokens;
+            const calls = await callsOf(ticketId);
+            const usage = { calls: calls.length, inputTokens: 0, outputTokens: 0, byJob: {} as Record<string, number> };
+            for (const { run, call } of calls) {
+                usage.inputTokens += call.inputTokens ?? 0;
+                usage.outputTokens += call.outputTokens ?? 0;
+                usage.byJob[run.purpose ?? 'other'] = (usage.byJob[run.purpose ?? 'other'] ?? 0) + (call.totalTokens ?? 0);
             }
             await trigger.ok(usage);
         }),
 
         handler('explain', t.object({ ticketId: t.string() }), t.array(Run), async ({ ticketId }, trigger) => {
-            const runs = await InferenceRunEntity.find({ 'metadata.ticketId': ticketId }).all();
-            await trigger.ok((runs as any[]).map(({ data }) => ({
-                operation: data.operation,
-                ai: data.ai ?? '',
-                model: data.model ?? '',
-                job: data.metadata?.job ?? null,
-                prompts: (data.metadata?.prompts ?? []).map((p: any) => ({ name: p.name, version: p.version ?? null })),
-                totalTokens: data.totalTokens,
-                latencyMs: data.latencyMs ?? null,
-                status: data.status
+            const calls = await callsOf(ticketId);
+            await trigger.ok(calls.map(({ run, call }) => ({
+                operation: run.kind,
+                ai: call.ai ?? '',
+                model: call.model ?? '',
+                job: run.purpose ?? null,
+                prompts: ((run.metadata.prompts ?? []) as any[]).map((p) => ({ name: p.name, version: p.version ?? null })),
+                totalTokens: call.totalTokens ?? 0,
+                latencyMs: call.durationMs ?? null,
+                status: call.status
             })));
         }),
 
@@ -248,7 +278,7 @@ export class SupportService extends IntelligenceService {
         // The same assistant, streamed: the text is sent while it's generated.
         // A streamed reply can't be reviewed before it's sent: stream only where that's acceptable.
         route.http().post('/chat/stream').do(async (params, trigger) => {
-            const context = intelligence(trigger.context);
+            const context = trigger.context as IntelligenceTrigger['context'];
             const { ticketId, message } = ChatMessage.parse(params);   // routes don't validate: do it here
             const ticket = await context.doc().collection('tickets').by(ticketId).get<StoredTicket>();
             if (!ticket) return trigger.notFound(`Ticket ${ticketId} not found`);
@@ -261,21 +291,21 @@ export class SupportService extends IntelligenceService {
             }
 
             const articles = await helpCenter(context, message);
-            const events = await assistant(context, ticket).with({ articles }).stream(message);
+            const history = await chatOf(context, ticketId);
+            const stream = await assistant(context, ticket, history).with({ articles }).question(message).stream();
 
-            async function* text() {
-                for await (const event of events) {
-                    if (event.type === 'text.delta') yield event.text;
-                }
-            }
+            // The turn is stored when the stream has finished. A stream that breaks stores nothing.
+            stream.onSettled((result) => {
+                if (result.status === 'completed') void remember(context, ticketId, message, result.value.text ?? '');
+            });
 
-            trigger.setReadble(Readable.from(text()), { mimeType: 'text/plain; charset=utf-8' });
+            trigger.setReadble(stream.toReadable({ format: 'text' }), { mimeType: 'text/plain; charset=utf-8' });
             await trigger.ok();
         });
 
         // Triage from the queue. A failed model call is a state, not a lost ticket.
         route.mq().queue('ticket-created').do(async (message, trigger) => {
-            const context = intelligence(trigger.context);
+            const context = trigger.context as IntelligenceTrigger['context'];
             const tickets = context.doc().collection('tickets');
             const ticket = await tickets.by((message as { id: string }).id).get<StoredTicket>();
             if (!ticket) return;

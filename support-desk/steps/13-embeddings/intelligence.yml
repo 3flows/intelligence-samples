@@ -64,13 +64,3 @@ blobs:
 vectors:
   - name: DEFAULT
     type: memory   # or redis, mongo
-
-# Conversations are entities: durable, shared between instances, and queryable.
-conversations:
-  store:
-    type: entities
-
-entities:
-  backend: docs
-  ontologies:
-    - IntelligenceConversationsOntology

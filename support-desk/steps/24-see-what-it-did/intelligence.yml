@@ -16,7 +16,7 @@ https:
         basepath: /help-center
 
 ais:
-  # Conversations and replies: the best model we're willing to pay for.
+  # Chat and replies: the best model we're willing to pay for.
   - name: DEFAULT
     provider: openai
     model: gpt-4.1
@@ -119,15 +119,11 @@ mqs:
     use:
       - SupportService
 
-# Conversations are entities: durable, shared between instances, and queryable.
-conversations:
-  store:
-    type: entities
-
+# Every model call is recorded as an inference run with its model calls: queryable like our own data.
 entities:
   backend: docs
-  ontologies:
-    - IntelligenceConversationsOntology
+  domains:
+    - IntelligenceTrace
 
 # Traces of every model call. Start MLflow (see the observability guide), then
 # export MLFLOW_ENABLED=true MLFLOW_TRACKING_URI=http://localhost:5001 MLFLOW_EXPERIMENT_ID=<id>

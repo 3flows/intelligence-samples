@@ -1,6 +1,6 @@
-# Step 09 – Remember the conversation
+# Step 09 – Remember
 
-`chat` continues one conversation per ticket (`conversations().conversation('ticket-<id>')`), stored as entities. `transcript` reads it.
+The chat of a ticket is the app's own record ([`chat.ts`](chat.ts), in `docs`). `chat` sends the last messages along with every question (`.messages(...)`, `History.window`), and stores the new turn. `transcript` reads the record.
 
 ```sh
 yarn step:09

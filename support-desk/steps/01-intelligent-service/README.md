@@ -2,7 +2,7 @@
 
 `SupportService` extends `IntelligenceService`, so its trigger context carries `inference()` next to the platform's `doc()`, `mq()` and `service()`. One handler asks the model; `ais` in YAML decides which model that is.
 
-`IntelligenceService` and `handler` come from [`_shared/intelligence-service.ts`](../_shared/intelligence-service.ts), a preview of a proposed library change.
+`IntelligenceService` and `handler` come from `@3flows/intelligence`.
 
 ```sh
 yarn step:01

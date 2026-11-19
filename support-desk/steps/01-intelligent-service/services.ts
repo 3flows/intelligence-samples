@@ -1,5 +1,5 @@
 import { Register, t } from '@3flows/platform';
-import { IntelligenceService, handler } from '../_shared/intelligence-service.js';
+import { IntelligenceService, handler } from '@3flows/intelligence';
 
 @Register()
 export class SupportService extends IntelligenceService {
@@ -10,7 +10,7 @@ export class SupportService extends IntelligenceService {
             t.object({ answer: t.string() }),
             async ({ question }, trigger) => {
                 const { inference } = trigger.context;
-                const answer = await inference().chat().ask(question);
+                const answer = await inference().chat().question(question).answer();
                 await trigger.ok({ answer: answer.text ?? '' });
             }
         )

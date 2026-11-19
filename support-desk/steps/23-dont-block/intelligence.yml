@@ -16,7 +16,7 @@ https:
         basepath: /help-center
 
 ais:
-  # Conversations and replies: the best model we're willing to pay for.
+  # Chat and replies: the best model we're willing to pay for.
   - name: DEFAULT
     provider: openai
     model: gpt-4.1
@@ -118,13 +118,3 @@ mqs:
     type: memory
     use:
       - SupportService
-
-# Conversations are entities: durable, shared between instances, and queryable.
-conversations:
-  store:
-    type: entities
-
-entities:
-  backend: docs
-  ontologies:
-    - IntelligenceConversationsOntology
