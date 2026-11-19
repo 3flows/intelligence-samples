@@ -21,7 +21,7 @@ The support desk of Velo, a small bike shop, in six parts. Every step continues 
 | [07-extract](support-desk/steps/07-extract) | `extract().schema()` |
 | [08-meaning-and-action](support-desk/steps/08-meaning-and-action) | Business rules in code, fed by decisions |
 | **Part 3: Converse and act** | |
-| [09-remember](support-desk/steps/09-remember) | `conversations()`, stored as entities |
+| [09-remember](support-desk/steps/09-remember) | legacy `conversations()` example; use 0.9 `chatbots:` for new apps |
 | [10-stream](support-desk/steps/10-stream) | `stream()` over HTTP |
 | [11-act](support-desk/steps/11-act) | Tools, scoped to the customer |
 | **Part 4: Give it knowledge** | |
@@ -59,13 +59,11 @@ LOCAL_MODEL=qwen/qwen3-coder-next yarn eval:18         # answers: retrieval, gro
 
 `LOCAL_MODEL` runs every chat AI in LM Studio; see [`_shared/real.ts`](support-desk/steps/_shared/real.ts).
 
-**A preview:** `IntelligenceService` and `handler` come from [`_shared/intelligence-service.ts`](support-desk/steps/_shared/intelligence-service.ts),
-a change proposed for `@3flows/intelligence` that puts `inference()`, `conversations()` and `prompts()` into the trigger context.
-Once the library ships it, only the import changes.
+**0.9 note:** the older support-desk tutorial still contains some 0.8-era conversation examples. New code should import `IntelligenceService`, `handler`, and `tool` directly from `@3flows/intelligence` and use `chatbots`, `skills`, `agents`, and `workflows` for the current concepts.
 
 ## Start your own project
 
-[`starter/`](starter) is an empty project: `package.json`, `tsconfig.json`, `.yarnrc.yml`, one HTTP server, one model and a test.
+[`starter/`](starter) is a current 0.9 starter: `package.json`, `tsconfig.json`, `.yarnrc.yml`, one HTTP server, a service with handlers/tools, one model, a chatbot, a skill, an agent, a workflow, and tests.
 Copy it, or follow the [setup page](https://3flows.github.io/intelligence-docs/docs/tutorial/setup) of the tutorial.
 
 ## Run

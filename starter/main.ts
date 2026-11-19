@@ -1,5 +1,4 @@
 import { Intelligence } from '@3flows/intelligence';
-
-// Import your services here, before the platform starts, so that YAML can find them.
+import './support-service.js';
 
 await Intelligence.run('./intelligence.yml');
