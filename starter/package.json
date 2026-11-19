@@ -13,8 +13,8 @@
     "test": "yarn build && node --test dist/*.test.js"
   },
   "dependencies": {
-    "@3flows/intelligence": "next",
-    "@3flows/platform": "next"
+    "@3flows/intelligence": "^0.9.0-next.4",
+    "@3flows/platform": "^0.9.0-next.31"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

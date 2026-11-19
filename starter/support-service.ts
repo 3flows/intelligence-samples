@@ -31,7 +31,8 @@ export class SupportService extends IntelligenceService {
                 .prompt('support.reply', { shop: 'Velo' })
                 .metadata({ purpose: 'starter.ask' })
                 .timeout(10_000)
-                .ask(question);
+                .question(question)
+                .answer();
 
             await trigger.ok({ answer: response.text ?? '' });
         }),
