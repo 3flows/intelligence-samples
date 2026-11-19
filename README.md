@@ -63,8 +63,8 @@ LOCAL_MODEL=qwen/qwen3-coder-next yarn eval:18         # answers: retrieval, gro
 
 ## Start your own project
 
-[`starter/`](starter) is a current 0.9 starter: `package.json`, `tsconfig.json`, `.yarnrc.yml`, one HTTP server, a service with handlers/tools, one model, a chatbot, a skill, an agent, a workflow, and tests.
-Copy it, or follow the [setup page](https://3flows.github.io/intelligence-docs/docs/tutorial/setup) of the tutorial.
+[`starter/`](starter) is the current 0.9 learning-path app. It introduces the building blocks in order: `ais` → Fluent inference → chatbots → skills/agents → workflows. It contains one HTTP server, one service with handlers/tools, one model, a chatbot, a skill, an agent, a workflow, and tests.
+Copy it, or follow the [0.9 learning path](https://3flows.github.io/intelligence-docs/docs/learning-path/) in the docs.
 
 ## Run
 

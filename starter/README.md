@@ -1,21 +1,68 @@
-# Starter
+# Starter: Intelligence 0.9 building blocks
 
-A small 3flows Intelligence 0.9 app. It shows the current building blocks in one place:
+This starter is the sample application for the Intelligence 0.9 learning path. It shows the building blocks in the order you normally learn/use them:
 
-- `IntelligenceService`, `handler`, and `tool` imported from `@3flows/intelligence`
-- Fluent inference through `trigger.context.inference()`
-- service-level tool discovery with `tool(...)`
-- a configured `chatbots:` entry with HTTP conversation compatibility
-- a configured `skills:` entry
-- a configured `agents:` entry
-- a code-defined workflow registered at runtime
+```text
+AIs → Fluent inference → Chatbots → Skills + agents → Workflows
+```
+
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `intelligence.yml` | All configuration: AIs, prompts, chatbot, skill, agent, storage, HTTP exposure |
+| `support-service.ts` | Application behavior: handlers, Fluent inference calls, model-facing tools, agent/workflow entry points |
+| `workflows.ts` | Code-defined workflow using Fluent inference as a step |
+| `main.ts` | Imports services and starts Intelligence |
+| `main.test.ts` | Smoke tests for the configured runtime |
+
+## The path through the app
+
+### 1. Configure AIs
+
+`intelligence.yml` defines `ais:`. This answers: **which model capabilities can the app use?**
+
+```yaml
+ais:
+  - name: DEFAULT
+    provider: openai
+    model: gpt-4.1-mini
+```
+
+`SupportService.describeChatAI` inspects the selected chat AI.
+
+### 2. Use the inference API from a service
+
+`SupportService.ask` uses Fluent chat for a direct application-owned model call.
+
+`SupportService.triageTicket` uses `choice()` so code receives typed data instead of parsing text.
+
+### 3. Expose a chatbot
+
+`chatbots.support` exposes a human-facing session chatbot at `/support`. It has bounded history and can discover public tools from `SupportService`.
+
+Use this when an external human needs a session-style assistant.
+
+### 4. Add skills and agents
+
+`skills.starter_support` is a reusable capability bundle: instructions plus tool references.
+
+`agents.starter_agent` is a task/run harness using that skill, service tools, policy, and workspace memory.
+
+`SupportService.runAgent` starts it and returns the run id/status.
+
+### 5. Orchestrate with workflows
+
+`workflows.ts` defines `starter.quickAnswer`. `SupportService.askWithWorkflow` registers and runs it.
+
+Use workflows for known multi-step business processes with reports, branches, waits, retries, and timeouts.
 
 ## Run
 
 ```sh
 corepack enable
 export NPM_REPOSITORY_GH_TOKEN=<a GitHub token with read:packages>
-export OPENAI_API_KEY=<your key>   # only needed when a handler/chatbot/agent calls the model
+export OPENAI_API_KEY=<your key>
 yarn install
 yarn start
 ```
@@ -26,50 +73,25 @@ Health check:
 curl localhost:3000/health
 ```
 
-## Try the service handlers
-
-The platform exposes registered service handlers on the configured HTTP server. Exact route projection depends on your Platform version, but the `SupportService` handlers are:
-
-- `ask` — direct Fluent chat call
-- `askWithWorkflow` — runs the `starter.quickAnswer` workflow
-- `runAgent` — starts `starter_agent`
-- `lookupOrder` — model-facing read-only tool metadata, usable by chatbots/agents/Fluent `toolsFrom(...)`
-
-## Chatbot and agent routes
-
-`intelligence.yml` exposes:
-
-```text
-/support                         # chatbot HTTP compatibility root
-/agents/starter                  # native agent run routes
-```
-
-The chatbot uses `support.chatbot.base`, keeps a bounded history, and can discover public tools from `SupportService`.
-
-The agent uses the `starter_support` skill, the same service tools, basic policy, and a memory workspace backed by Platform docs/blobs.
-
-## Workflow
-
-`workflows.ts` defines `starter.quickAnswer`:
-
-```ts
-workflow('starter.quickAnswer')
-  .input<{ question: string }>()
-  .step('answer', (s) => s.inference().chat().question(({ input }) => input.question).define())
-  .returns(({ steps }) => ({ answer: steps.answer.text ?? '' }));
-```
-
-`SupportService` registers it lazily before the first `askWithWorkflow` call.
-
 ## Test
 
 ```sh
 yarn test
 ```
 
-The test starts the app, checks `/health`, validates the configured model, and checks the 0.9 concepts are visible through `Intelligence.inspect()`.
+The tests start the app and inspect configuration. Real model calls require `OPENAI_API_KEY`.
 
-Intelligence and Platform come from GitHub Packages using the `next` tag. Update both together:
+## Learn more
+
+Read the docs learning path in `intelligence-docs`:
+
+1. Configure AIs
+2. Use Fluent inference
+3. Add a chatbot
+4. Add skills and agents
+5. Orchestrate with workflows
+
+Update dependencies together:
 
 ```sh
 yarn up @3flows/intelligence@next @3flows/platform@next

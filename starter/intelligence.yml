@@ -1,5 +1,6 @@
 name: my-intelligence-app
 
+# Optional guardrails. Start with warnings while learning; tighten this in production.
 intelligence:
   inference:
     require:
@@ -7,6 +8,7 @@ intelligence:
       timeout: false
     onViolation: warn
 
+# Platform exposure. The service handlers are the application API.
 https:
   - name: api
     port: 3000
@@ -16,6 +18,7 @@ https:
 services:
   - name: SupportService
 
+# Platform storage used by Intelligence trace/chatbot/agent domains and the agent workspace.
 docs:
   - name: DEFAULT
     type: memory
@@ -35,20 +38,34 @@ entities:
     - IntelligenceChatbot
     - IntelligenceAgent
 
+# 1. AIs: provider/model/capability configuration. No business logic here.
 ais:
   - name: DEFAULT
     provider: openai
     model: gpt-4.1-mini
     connection:
       apiKey: ${{ OPENAI_API_KEY }}
+    defaults:
+      timeoutMs: 10000
+      retry:
+        attempts: 2
+        backoffMs: 500
 
+# Policy/persona text is versioned prompt configuration, not hard-coded in services.
 prompts:
+  - name: support.reply
+    version: v1
+    template: |
+      You draft replies for {{ shop }}, a bike shop.
+      Be brief, factual and friendly. If facts are missing, say what is missing.
+
   - name: support.chatbot.base
     version: v1
     template: |
       You are the starter app support chatbot.
       Keep answers short and use tools when they help.
 
+# 4a. Skills: reusable instructions + tool references. No executable TypeScript here.
 skills:
   - name: starter_support
     description: Answer starter support questions and look up sample orders.
@@ -58,6 +75,7 @@ skills:
       - service: SupportService
         tags: [public]
 
+# 3. Chatbots: human-facing session surfaces with bounded history and optional tools.
 chatbots:
   - name: support
     type: conversation
@@ -75,6 +93,7 @@ chatbots:
     toolPolicy:
       allowDestructive: false
 
+# 4b. Agents: task/run harnesses with skills, tools, policy and workspace memory.
 agents:
   - name: starter_agent
     model: DEFAULT
