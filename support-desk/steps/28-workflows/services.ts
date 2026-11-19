@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { Register, Route, TriggerContext, t } from '@3flows/platform';
 import {
-    AgentRunResult, InferenceTool, IntelligenceAgentDomain, IntelligenceService, IntelligenceServiceContext, IntelligenceTraceDomain,
+    InferenceTool, IntelligenceAgentDomain, IntelligenceService, IntelligenceServiceContext, IntelligenceTraceDomain,
     IntelligenceTrigger, handler, tool
 } from '@3flows/intelligence';
 import { Passage } from './help-center.js';
@@ -264,22 +264,18 @@ export class SupportService extends IntelligenceService {
             const ticket = await doc().collection('tickets').by(ticketId).get<StoredTicket>();
             if (!ticket) return trigger.notFound(`Ticket ${ticketId} not found`);
 
-            // stream() yields the agent's events while it works, and records them with the run. run() only returns the result.
-            const events = agent(RESEARCHER)
+            // run() waits for the agent and returns the result. stream() would yield its events while it works.
+            const run = await agent(RESEARCHER)
                 .using(trigger.context)
                 .task('Prepare a brief for the colleague who takes over this ticket.')
                 .input({ ticketId, subject: ticket.subject, body: ticket.body, triage: ticket.triage, escalation: ticket.escalation })
                 .metadata({ subjectType: 'ticket', subjectId: ticketId, purpose: 'case-brief' })
-                .stream();
+                .run();
+            if (run.status === 'failed') throw new Error(`The case researcher failed on ticket ${ticketId}`);
 
-            let run: AgentRunResult | undefined;
-            const steps: string[] = [];   // the tools it called, in order
-            for await (const event of events) {
-                if (event.type === 'tool.started') steps.push(event.toolName);
-                if (event.type === 'run.completed') run = event.result;
-                if (event.type === 'run.failed') throw new Error(`The case researcher failed: ${String(event.error)}`);
-            }
-            if (!run) throw new Error('The case researcher did not finish');
+            // The run recorded what the agent did: the tools it called, in order.
+            const events = await agent(RESEARCHER).run(run.runId).events();
+            const steps = events.flatMap((event) => (event.type === 'tool.started' ? [event.toolName] : []));
 
             // One brief per ticket: a new one replaces the old one, and the old run goes with it.
             const previous = await doc().collection('briefs').by(ticketId).get<Brief>();

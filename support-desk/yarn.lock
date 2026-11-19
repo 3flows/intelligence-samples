@@ -5,15 +5,15 @@ __metadata:
   version: 10
   cacheKey: 10c0
 
-"@3flows/intelligence@npm:0.9.0-next.4":
-  version: 0.9.0-next.4
-  resolution: "@3flows/intelligence@npm:0.9.0-next.4::__archiveUrl=https%3A%2F%2Fnpm.pkg.github.com%2Fdownload%2F%403flows%2Fintelligence%2F0.9.0-next.4%2F5eb3cc928fdf1fd9501f2a4b7f07ecd0e31fd5c1"
+"@3flows/intelligence@npm:0.9.0-next.5":
+  version: 0.9.0-next.5
+  resolution: "@3flows/intelligence@npm:0.9.0-next.5::__archiveUrl=https%3A%2F%2Fnpm.pkg.github.com%2Fdownload%2F%403flows%2Fintelligence%2F0.9.0-next.5%2F4ca68d9ad4b4e53e8516f72304795eefb69a1856"
   dependencies:
     "@3flows/platform": "npm:0.9.0-next.31"
     "@azure/identity": "npm:^4.13.3"
     "@mlflow/core": "npm:^0.4.0"
     "@prometheus-io/client": "npm:^0.16.1"
-  checksum: 10c0/b70252f6be9613d5af819820603aae9224b1a0079d2816aeb415516e9cc969ec50c09a8fe05ff05931e5a2ea8d5d1e0ec389c02edfedfe2b338e34f11b026480
+  checksum: 10c0/3d87f18dc6d8c8304e59477b53684cc1cb929ccb846950032326136ae15f2fbe1183050a14594ec92a5ce83ba992ee736d1a6750cee395b4f135f7c342c9cef0
   languageName: node
   linkType: hard
 
@@ -5386,7 +5386,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "support-desk@workspace:."
   dependencies:
-    "@3flows/intelligence": "npm:0.9.0-next.4"
+    "@3flows/intelligence": "npm:0.9.0-next.5"
     "@3flows/platform": "npm:0.9.0-next.31"
     "@types/node": "npm:^24.0.0"
     typescript: "npm:^6.0.3"

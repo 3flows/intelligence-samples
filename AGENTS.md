@@ -142,8 +142,7 @@ beforeEach(() => ScriptedAI.reset((request) => request.responseSchemaName === 'd
 ## 5. Known gaps
 
 See https://3flows.github.io/intelligence-docs/docs/guides/known-gaps. In short: binary files (images, PDFs) aren't
-supported by every provider, `ocr` and `video` need a provider that has them, and in `0.9.0-next.4` a chatbot session reads
-only its first ten stored messages. Platform handlers validate input but don't apply Zod defaults: use destructuring defaults.
+supported by every provider, and `ocr` and `video` need a provider that has them. Platform handlers validate input but don't apply Zod defaults: use destructuring defaults.
 
 ## 6. Where to look
 

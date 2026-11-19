@@ -62,6 +62,18 @@ describe('Step 26: a chatbot', () => {
         ]);
     });
 
+    test('a long session keeps its whole history, in order', async () => {
+        const chatbot = Intelligence.chatbots().chatbot('shop');
+        const { conversationId } = await chatbot.session().start();
+        for (let turn = 1; turn <= 8; turn++) {
+            ScriptedAI.reset(() => `answer ${turn}`);
+            await chatbot.session(conversationId).message().text(`question ${turn}`).send();
+        }
+
+        const history = ScriptedAI.requests[0].messages.map((message) => message.content).slice(1);   // without the greeting
+        assert.deepEqual(history, [1, 2, 3, 4, 5, 6, 7].flatMap((turn) => [`question ${turn}`, `answer ${turn}`]));
+    });
+
     test('the same chatbot, from code', async () => {
         ScriptedAI.reset(() => 'We ship within two business days.');
         const chatbot = Intelligence.chatbots().chatbot('shop');
