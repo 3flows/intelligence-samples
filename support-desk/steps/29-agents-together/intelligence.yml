@@ -1,0 +1,237 @@
+name: support-desk
+
+services:
+  - name: SupportService
+  - name: OrdersService
+  - name: HelpCenterService
+
+https:
+  - name: api
+    port: 3000
+    services:
+      - name: SupportService
+      - name: OrdersService
+        basepath: /orders   # every service on a server needs its own path
+      - name: HelpCenterService
+        basepath: /help-center
+  # The shop's website talks to its own server: the public chat, and nothing else.
+  - name: public
+    port: 3001
+
+ais:
+  # Chat and replies: the best model we're willing to pay for.
+  - name: DEFAULT
+    provider: openai
+    model: gpt-4.1
+    connection:
+      apiKey: ${{ OPENAI_API_KEY }}
+    defaults:
+      temperature: 0.3
+      maxTokens: 600
+      timeoutMs: 30000
+      retry: { attempts: 3, backoffMs: 1000 }
+
+  # Triage, guardrail checks and judges: small, fast, and as deterministic as it gets.
+  - name: triage
+    provider: openai
+    model: gpt-4.1-nano
+    connection:
+      apiKey: ${{ OPENAI_API_KEY }}
+    defaults:
+      temperature: 0
+      maxTokens: 300
+      timeoutMs: 20000
+      retry: { attempts: 3, backoffMs: 1000 }
+
+  # Moderation: the provider's safety screen, small and fast.
+  - name: moderation
+    provider: openai
+    model: omni-moderation-latest
+    connection:
+      apiKey: ${{ OPENAI_API_KEY }}
+    defaults:
+      timeoutMs: 10000
+
+  # Embeddings: a separate, small model. embedding() finds it by capability.
+  - name: embeddings
+    provider: openai
+    model: text-embedding-3-small
+    connection:
+      apiKey: ${{ OPENAI_API_KEY }}
+    defaults:
+      timeoutMs: 10000
+
+  # A reranker: any Cohere- or Jina-style /rerank endpoint works through openai-compatible.
+  - name: reranker
+    provider: openai-compatible
+    model: jina-reranker-v2-base-multilingual
+    connection:
+      baseUrl: https://api.jina.ai/v1
+      apiKey: ${{ JINA_API_KEY }}
+    defaults:
+      timeoutMs: 10000
+
+prompts:
+  - name: support.reply
+    version: v1
+    description: Drafts replies to customer tickets, for agents to review
+    template: |
+      You draft replies for the support team of {{ shop }}, a bike shop.
+
+      Rules:
+      - Be brief: three short paragraphs at most.
+      - Use the facts you are given. If a fact is missing, ask the customer for it.
+      - Never promise refunds, discounts or delivery dates. Say that the team will confirm.
+      - Answer in the language of the ticket.
+
+      Tone: friendly, concrete, no marketing language.
+
+  - name: support.routing
+    version: v1
+    description: Tie-breaking rules for routing tickets to a team
+    template: |
+      You route tickets for the support team of a bike shop.
+      Rules, in this order:
+      - A defect, whether the customer wants a repair, a replacement or their money back, goes to technical.
+      - Anything about an order that has already been placed and isn't a defect goes to billing.
+      - Questions before buying, including prices of spare parts, go to sales.
+
+  - name: shop.assistant
+    version: v1
+    description: The public help chat on the shop's website
+    template: |
+      You are the assistant on the website of Velo, a bike shop. Visitors ask general questions before or after buying.
+      - Answer only from the help center. Search it before you answer; if it has no answer, say so and point to the contact form.
+      - Mention the title of the article you used.
+      - You don't know anything about a visitor's orders or tickets. For those, point to the ticket page.
+      - Never promise refunds, discounts or delivery dates.
+      - Keep answers short.
+
+  - name: support.chat
+    version: v3
+    description: The assistant customers chat with on their ticket
+    template: |
+      You are the support assistant of {{ shop }}, a bike shop, chatting with a customer about their ticket.
+      You get the ticket and relevant help center articles as context.
+
+      - Answer questions about policies (returns, warranty, shipping) only from the articles.
+        If they don't answer the question, say that a colleague will get back to the customer.
+      - Mention the title of the article you used.
+      - If the customer asks about an order, look it up. Never guess an order's status.
+      - Never promise refunds, discounts or delivery dates; say that the team will confirm.
+      - Keep answers short.
+
+# A skill: what an agent needs to know and may use for one kind of work. Words and tool references, no code.
+skills:
+  - name: case-research
+    description: Collect the facts of a support case before a person answers it.
+    instructions:
+      - Read the chat of the ticket first, so you know what was already said.
+      - If the ticket or the chat mentions an order number, look the order up. Never guess an order's status.
+    tools:
+      - service: SupportService
+        tags: [case]
+
+  - name: policy-research
+    description: Find the shop policy that applies to a question, in the help center.
+    instructions:
+      - Search the help center before you answer. Answer only from what you found, and name the article.
+      - If the help center has no answer, say so.
+    tools:
+      - service: HelpCenterService
+        tags: [public]
+
+# An agent: a model that works on a task in several steps, with the tools of its skills, inside the limits of its policy.
+agents:
+  - name: case-researcher
+    model: DEFAULT
+    description: Prepares a brief for the person who takes over a ticket.
+    instructions:
+      - You prepare a brief for a support colleague at Velo, a bike shop, who takes over a ticket.
+      - "The brief has three short parts: what the customer wants, the facts you found with their source, and a suggested next step."
+      - For questions about returns, warranty or shipping rules, ask the policy advisor. Don't answer them from memory.
+      - You never write to the customer, and you never promise anything.
+    skills:
+      - case-research
+    # Colleagues it may ask. Each peer becomes a tool: ask_policy_advisor.
+    peers:
+      - agent: policy-advisor
+    delegation:
+      maxDepth: 1          # the advisor doesn't ask anyone else
+      maxChildRuns: 3      # per run of the researcher
+    policy:
+      allowDestructive: false   # read-only tools: nothing here changes data
+      maxToolRounds: 4
+
+  - name: policy-advisor
+    displayName: Policy Advisor
+    model: DEFAULT
+    description: Answers questions about Velo's returns, warranty and shipping rules, from the help center.
+    capabilities: [returns-policy, warranty, shipping-rules]
+    tags: [policy]
+    instructions:
+      - You answer a colleague's question about Velo's rules in two or three sentences.
+    skills:
+      - policy-research
+    policy:
+      allowDestructive: false
+      maxToolRounds: 2
+    # Listed when someone asks which agents there are.
+    a2a:
+      discoverable: true
+
+# The shop's public help chat: one visitor, one assistant, sessions and history kept by the chatbot.
+chatbots:
+  - name: shop
+    type: conversation
+    model: DEFAULT
+    greeting: Hi, I'm the Velo assistant. Ask me about returns, shipping, sizes or assembly.
+    prompts:
+      - name: shop.assistant
+        version: v1
+    history:
+      maxMessages: 20        # what the model sees of a session
+    tools:
+      - service: HelpCenterService
+        tags: [public]       # only handlers marked as tools, and only the public ones
+    toolPolicy:
+      allowDestructive: false
+    http:
+      useHttp: public
+      path: /shop
+
+docs:
+  - name: DEFAULT
+    type: memory
+
+blobs:
+  - name: DEFAULT
+    type: memory
+
+vectors:
+  - name: DEFAULT
+    type: memory   # or redis, mongo
+
+mqs:
+  - name: DEFAULT
+    type: memory
+    use:
+      - SupportService
+
+# Every model call is recorded as an inference run with its model calls: queryable like our own data.
+entities:
+  backend: docs
+  domains:
+    - IntelligenceTrace
+    - IntelligenceChatbot    # chatbot sessions and their messages
+    - IntelligenceAgent      # agent runs, their steps and events
+
+# Traces of every model call. Start MLflow (see the observability guide), then
+# export MLFLOW_ENABLED=true MLFLOW_TRACKING_URI=http://localhost:5001 MLFLOW_EXPERIMENT_ID=<id>
+tracers:
+  - name: DEFAULT
+    enabled: ${{ MLFLOW_ENABLED }}
+    provider: mlflow
+    parameters:
+      trackingUri: ${{ MLFLOW_TRACKING_URI }}
+      experimentId: ${{ MLFLOW_EXPERIMENT_ID }}

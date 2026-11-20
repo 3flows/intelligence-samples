@@ -6,7 +6,7 @@ Runnable samples for [`@3flows/intelligence`](https://github.com/3flows/intellig
 
 ## Support desk
 
-The support desk of Velo, a small bike shop, in seven parts. Every step continues from the one before it.
+The support desk of Velo, a small bike shop, in eight parts. Every step continues from the one before it.
 All steps run on `@3flows/intelligence@0.9.0-next.6`.
 
 | Step | Concept |
@@ -46,6 +46,11 @@ All steps run on `@3flows/intelligence@0.9.0-next.6`.
 | [26-a-chatbot](support-desk/steps/26-a-chatbot) | `chatbots`: a public help chat with sessions, and `tool(...)` handlers |
 | [27-skills-and-agents](support-desk/steps/27-skills-and-agents) | `skills` and `agents`: a case researcher that prepares a brief |
 | [28-workflows](support-desk/steps/28-workflows) | `workflow(...)`: the intake of a ticket, with a retry, a branch and a report |
+| **Part 8: Beyond one agent** | |
+| [29-agents-together](support-desk/steps/29-agents-together) | `peers`, delegation, agent cards and discovery |
+| [30-confirm-before-acting](support-desk/steps/30-confirm-before-acting) | `requiresConfirmation`: a run that waits, `resume` and `stop` |
+| [31-a-console](support-desk/steps/31-a-console) | An agent over AG-UI, UI tools, tools over MCP |
+| [32-many-at-once](support-desk/steps/32-many-at-once) | `collection(...)`: concurrency, retries, a result per item |
 
 **Tests need no model and no key.** Every step's test runs the step's real YAML with every AI replaced by a scripted
 provider ([`_shared/scripted-ai.ts`](support-desk/steps/_shared/scripted-ai.ts), [`_shared/offline.ts`](support-desk/steps/_shared/offline.ts)).
