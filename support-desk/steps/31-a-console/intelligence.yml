@@ -210,6 +210,9 @@ agents:
       - console-ui
     peers:
       - agent: policy-advisor
+    delegation:
+      maxDepth: 1
+      maxChildRuns: 2
     policy:
       allowDestructive: false
       maxToolRounds: 4
