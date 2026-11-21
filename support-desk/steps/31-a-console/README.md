@@ -1,6 +1,6 @@
 # Step 31 – A console for the team
 
-`desk-assistant` is an agent served to a frontend over AG-UI, on a server of its own (port 3002), with run routes and its card over HTTP. [`console.ts`](console.ts) gives it UI tools (`show_card`, …): the model asks for a card, the frontend renders it. The help center's tool is also offered as an MCP server (port 3003).
+`desk-assistant` is an agent served to a frontend over AG-UI, on a server of its own (port 3002), with run routes and its card over HTTP. [`console.ts`](console.ts) gives it UI tools (`show_card`, …): the model asks for a card, the frontend renders it. The help center's tool is also offered as an MCP server (port 3003). The assistant can send a return label; that tool waits for a yes, so the run ends with an interrupt, and the console's answer (`resume`) continues or stops it.
 
 ```sh
 yarn step:31

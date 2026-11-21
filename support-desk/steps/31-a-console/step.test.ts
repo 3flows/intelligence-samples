@@ -26,16 +26,27 @@ const showsOrder = (ticketId: string) => (request: AIChatRequest) => {
     return 'The order has shipped.';
 };
 
-/** One AG-UI run: what a frontend sends, and the events it gets back as server-sent events. */
-async function aguiRun(message: string, state: Record<string, unknown>): Promise<Array<Record<string, any>>> {
+/** The colleague asks for a return label: the assistant calls the tool, which waits for a yes. */
+const sendsLabel = (ticketId: string) => (request: AIChatRequest) => {
+    const done = request.messages.filter((message) => message.role === 'tool').length;
+    if (done === 0) return call('desk-1', 'send_return_label', { ticketId });
+    return JSON.stringify(request.messages.at(-1)?.content).includes('interactionRequired') ? 'I need your confirmation to send the label.' : 'The return label is on its way.';
+};
+
+/** What a frontend sends to the agent, and the events it gets back as server-sent events. */
+async function agui(body: Record<string, unknown>): Promise<Array<Record<string, any>>> {
     const response = await fetch(`${CONSOLE}/desk-assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId: 'thread-1', runId: 'run-1', state, messages: [{ id: 'm1', role: 'user', content: message }] })
+        body: JSON.stringify({ threadId: 'thread-1', ...body })
     });
     assert.equal(response.status, 200);
     return (await response.text()).split('\n').filter((line) => line.startsWith('data:')).map((line) => JSON.parse(line.slice(5)));
 }
+
+/** One AG-UI run: a message of the colleague, and what the console knows as state. */
+const aguiRun = (message: string, state: Record<string, unknown>) =>
+    agui({ runId: 'run-1', state, messages: [{ id: 'm1', role: 'user', content: message }] });
 
 describe('Step 31: a console for the team', () => {
     let id: string;
@@ -60,12 +71,52 @@ describe('Step 31: a console for the team', () => {
         assert.equal(events.filter((event) => event.type === 'TEXT_MESSAGE_CONTENT').map((event) => event.delta).join(''), 'The order has shipped.');
     });
 
-    test('a UI tool hands its specification to the frontend: the card arrives as the result of show_card', async () => {
+    test('a UI tool hands its specification to the frontend: the card arrives as the arguments of show_card', async () => {
         const events = await aguiRun('Where is the order of this ticket?', { ticketId: id });
 
         const shown = events.find((event) => event.type === 'TOOL_CALL_START' && event.toolCallName === 'show_card')!;
+        const args = events.find((event) => event.type === 'TOOL_CALL_ARGS' && event.toolCallId === shown.toolCallId)!;
+        assert.deepEqual(JSON.parse(args.delta), card);
+        // A UI tool returns what it was given: the model sees that the card was shown.
         const result = events.find((event) => event.type === 'TOOL_CALL_RESULT' && event.toolCallId === shown.toolCallId)!;
         assert.deepEqual(JSON.parse(result.content), card);
+    });
+
+    test('an action waits for a yes in the console: the run ends with an interrupt, and the answer continues it', async () => {
+        ScriptedAI.reset(sendsLabel(id));
+        const events = await aguiRun('Send the customer a return label.', { ticketId: id });
+
+        // The run didn't fail and didn't finish: it stopped on a question, with what it wants to do.
+        const { outcome } = events.at(-1)!;
+        assert.equal(outcome.type, 'interrupt');
+        const [interrupt] = outcome.interrupts;
+        assert.equal(interrupt.reason, 'tool_confirmation');
+        assert.deepEqual([interrupt.metadata.tool, interrupt.metadata.arguments], ['send_return_label', { ticketId: id }]);
+        assert.deepEqual(await post(`${API}/returnLabel`, { ticketId: id }), { sent: false });
+
+        // The colleague clicks yes. The console answers the interrupt by its id, and the same run goes on.
+        const resumed = await agui({ runId: 'run-2', resume: [{ interruptId: interrupt.id, status: 'resolved' }] });
+        assert.equal(resumed.at(-1)!.outcome.type, 'success');
+        assert.equal(resumed.at(-1)!.result.runId, interrupt.metadata.agentRunId);
+        assert.equal(resumed.filter((event) => event.type === 'TEXT_MESSAGE_CONTENT').map((event) => event.delta).join(''), 'The return label is on its way.');
+        assert.deepEqual(await post(`${API}/returnLabel`, { ticketId: id }), { sent: true });
+
+        // An interrupt is answered once.
+        const again = await agui({ runId: 'run-3', resume: [{ interruptId: interrupt.id, status: 'resolved' }] });
+        assert.equal(again.at(-1)!.type, 'RUN_ERROR');
+    });
+
+    test('a no stops the run, and nothing is sent', async () => {
+        const other = (await post(`${API}/createTicket`, { email: 'bob@example.com', subject: 'Return', body: 'I want to return my helmet.' })).id;
+        ScriptedAI.reset(triageScript());
+        await settled(other);
+        ScriptedAI.reset(sendsLabel(other));
+        const events = await aguiRun('Send the customer a return label.', { ticketId: other });
+        const [interrupt] = events.at(-1)!.outcome.interrupts;
+
+        const declined = await agui({ runId: 'run-2', resume: [{ interruptId: interrupt.id, status: 'cancelled' }] });
+        assert.equal(declined.at(-1)!.outcome.type, 'cancelled');
+        assert.deepEqual(await post(`${API}/returnLabel`, { ticketId: other }), { sent: false });
     });
 
     test('what the frontend knows reaches the model as context: the ticket on screen', async () => {
@@ -74,9 +125,9 @@ describe('Step 31: a console for the team', () => {
         const [request] = ScriptedAI.requests;
         assert.match(JSON.stringify(request.inputs), new RegExp(id));
         assert.match(JSON.stringify(request.inputs), /Where is the order of this ticket\?/);
-        // Its tools: reading the case, asking the policy advisor, and the three things it may show. Nothing that acts.
+        // Its tools: reading the case, asking the policy advisor, the three things it may show, and one action, which waits for a yes.
         assert.deepEqual(request.tools?.map((tool) => tool.name).sort(), [
-            'ask_policy_advisor', 'chat_of_ticket', 'order_of_ticket', 'show_callout', 'show_card', 'show_key_value_list'
+            'ask_policy_advisor', 'chat_of_ticket', 'order_of_ticket', 'send_return_label', 'show_callout', 'show_card', 'show_key_value_list'
         ]);
     });
 
@@ -91,7 +142,7 @@ describe('Step 31: a console for the team', () => {
     test('the same agent has run routes and a card over HTTP', async () => {
         const found = await (await fetch(`${CONSOLE}/agents/desk-assistant/card`)).json();
         assert.equal(found.name, 'Desk Assistant');
-        assert.deepEqual(found.skills.map((skill: any) => skill.id), ['case-research', 'console-ui']);
+        assert.deepEqual(found.skills.map((skill: any) => skill.id), ['case-research', 'case-actions', 'console-ui']);
         assert.equal(found.capabilities.streaming, true);
 
         const run = await post(`${CONSOLE}/agents/desk-assistant/runs`, { task: 'Where is the order of this ticket?', context: { state: { ticketId: id } } });

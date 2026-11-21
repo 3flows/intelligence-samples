@@ -207,6 +207,7 @@ agents:
       - The ticket they are looking at is in the context you get, as state.ticketId.
     skills:
       - case-research
+      - case-actions       # send_return_label: it waits for a yes, and the console asks for it
       - console-ui
     peers:
       - agent: policy-advisor
