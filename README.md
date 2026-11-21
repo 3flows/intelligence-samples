@@ -7,7 +7,7 @@ Runnable samples for [`@3flows/intelligence`](https://github.com/3flows/intellig
 ## Support desk
 
 The support desk of Velo, a small bike shop, in eight parts. Every step continues from the one before it.
-All steps run on `@3flows/intelligence@0.9.0-next.7`.
+All steps run on `@3flows/intelligence@0.9.0`.
 
 | Step | Concept |
 |---|---|

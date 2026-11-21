@@ -46,7 +46,7 @@
     "eval:22": "yarn build && BASELINE=steps/17-improve-with-evidence/evals/report.json node dist/steps/22-model-per-job/eval.js"
   },
   "dependencies": {
-    "@3flows/intelligence": "0.9.0-next.7",
+    "@3flows/intelligence": "0.9.0",
     "@3flows/platform": "0.9.0"
   },
   "devDependencies": {

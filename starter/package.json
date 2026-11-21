@@ -13,7 +13,7 @@
     "test": "yarn build && node --test dist/*.test.js"
   },
   "dependencies": {
-    "@3flows/intelligence": "0.9.0-next.7",
+    "@3flows/intelligence": "0.9.0",
     "@3flows/platform": "0.9.0"
   },
   "devDependencies": {
